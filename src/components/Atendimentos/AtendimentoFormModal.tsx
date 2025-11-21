@@ -12,17 +12,20 @@ interface AtendimentoFormModalProps {
   onClose: () => void;
   preSelectedPacienteId?: string;
   initialData?: Atendimento | null;
+  defaultDate?: string; // YYYY-MM-DD
+  defaultTime?: string; // HH:mm
+  defaultStatus?: AtendimentoStatus;
 }
 
-const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onClose, preSelectedPacienteId, initialData }) => {
+const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onClose, preSelectedPacienteId, initialData, defaultDate, defaultTime, defaultStatus }) => {
   const { state, addAtendimento, updateAtendimento } = useClinicData();
   const [pacienteId, setPacienteId] = useState(preSelectedPacienteId || '');
   const [profissionalId, setProfissionalId] = useState('');
   const [tipo, setTipo] = useState<AtendimentoTipo>(AtendimentoTipo.AVALIACAO);
   const [local, setLocal] = useState(LOCAIS_ATENDIMENTO[0]);
-  const [status, setStatus] = useState<AtendimentoStatus>(AtendimentoStatus.REALIZADO);
-  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
-  const [hora, setHora] = useState(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+  const [status, setStatus] = useState<AtendimentoStatus>(defaultStatus || AtendimentoStatus.REALIZADO);
+  const [data, setData] = useState(defaultDate || new Date().toISOString().split('T')[0]);
+  const [hora, setHora] = useState(defaultTime || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
   
   // Vitals
   const [sinaisVitais, setSinaisVitais] = useState({
@@ -67,13 +70,13 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
       setProfissionalId('');
       setTipo(AtendimentoTipo.AVALIACAO);
       setLocal(LOCAIS_ATENDIMENTO[0]);
-      setStatus(AtendimentoStatus.REALIZADO);
-      setData(new Date().toISOString().split('T')[0]);
-      setHora(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+      setStatus(defaultStatus || AtendimentoStatus.REALIZADO);
+      setData(defaultDate || new Date().toISOString().split('T')[0]);
+      setHora(defaultTime || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
       setSinaisVitais({ spo2: '', fc: '', fr: '', paSistolica: '', paDiastolica: '', temp: '' });
       setSoap({ subjetivo: '', objetivo: '', avaliacao: '', plano: '' });
     }
-  }, [isOpen, initialData, preSelectedPacienteId]);
+  }, [isOpen, initialData, preSelectedPacienteId, defaultDate, defaultTime, defaultStatus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,7 +205,9 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
 
         <div className="flex justify-end space-x-3 pt-4 border-t">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" variant="primary" isLoading={loading}>{initialData ? 'Salvar alterações' : 'Salvar Atendimento'}</Button>
+          <Button type="submit" variant="primary" isLoading={loading}>
+            {initialData ? 'Salvar alterações' : status === AtendimentoStatus.AGENDADO ? 'Salvar agendamento' : 'Salvar atendimento'}
+          </Button>
         </div>
       </form>
     </Modal>
