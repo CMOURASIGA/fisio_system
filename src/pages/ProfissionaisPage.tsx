@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import ProfissionalFormModal from '../components/Profissionais/ProfissionalFormModal';
-import { Profissional, UserRole } from '../types';
+import { Profissional } from '../types';
 import { Plus, Mail, User, Edit, Trash2 } from 'lucide-react';
 
 const ProfissionaisPage: React.FC = () => {

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { Paciente, Profissional, Atendimento, Relatorio, UserRole, AtendimentoTipo, AtendimentoStatus } from '../types';
+import { Paciente, Profissional, Atendimento, Relatorio, UserRole } from '../types';
 
 // Helpers to convert between DB snake_case and frontend camelCase for atendimentos
 const mapAtendimentoFromDb = (row: any): Atendimento => ({
@@ -148,7 +148,7 @@ interface ClinicContextType {
   updateProfissional: (profissional: Profissional) => Promise<void>;
   deleteProfissional: (id: string) => Promise<void>;
   // Atendimentos
-  addAtendimento: (atendimento: Omit<Atendimento, 'id' | 'criado_por'>) => Promise<void>;
+  addAtendimento: (atendimento: Omit<Atendimento, 'id' | 'criado_por' | 'created_at'>) => Promise<void>;
   updateAtendimento: (atendimento: Atendimento) => Promise<void>;
   deleteAtendimento: (id: string) => Promise<void>;
 }
@@ -239,7 +239,7 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
   }
 
   // Atendimento Functions
-  const addAtendimento = async (data: Omit<Atendimento, 'id' | 'criado_por'>) => {
+  const addAtendimento = async (data: Omit<Atendimento, 'id' | 'criado_por' | 'created_at'>) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated to add atendimento.");
     const dataToInsert = mapAtendimentoToDb(data, user.id);

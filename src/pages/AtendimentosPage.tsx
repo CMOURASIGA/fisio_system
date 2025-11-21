@@ -3,19 +3,18 @@ import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import AtendimentoFormModal from '../components/Atendimentos/AtendimentoFormModal';
 import { formatDateTime } from '../utils/dateHelpers';
-import { Plus, Filter, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Atendimento } from '../types';
 
 const AtendimentosPage: React.FC = () => {
   const { state, deleteAtendimento } = useClinicData();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filter, setFilter] = useState('todos');
   const [editingAtendimento, setEditingAtendimento] = useState<Atendimento | null>(null);
 
   const getPacienteName = (id: string) => state.pacientes.find(p => p.id === id)?.nome || 'Desconhecido';
   const getProfissionalName = (id: string) => state.profissionais.find(p => p.id === id)?.nome || 'Desconhecido';
 
-  const filteredAtendimentos = state.atendimentos.sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+  const sortedAtendimentos = [...state.atendimentos].sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
 
   const handleOpenNew = () => {
     setEditingAtendimento(null);
@@ -33,7 +32,7 @@ const AtendimentosPage: React.FC = () => {
       await deleteAtendimento(id);
     } catch (error) {
       console.error('Failed to delete atendimento', error);
-      alert('Não foi possível excluir. Verifique sua permissão ou tente novamente.');
+      alert('Nao foi possivel excluir. Verifique sua permissao ou tente novamente.');
     }
   };
 
@@ -49,13 +48,11 @@ const AtendimentosPage: React.FC = () => {
 
       <div className="bg-white shadow overflow-hidden rounded-md">
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-           <span className="text-sm text-gray-500">Mostrando últimos registros</span>
-           <button className="text-gray-500 hover:text-gray-700 flex items-center text-sm">
-             <Filter className="h-4 w-4 mr-1" /> Filtrar
-           </button>
+           <span className="text-sm text-gray-500">Mostrando ultimos registros</span>
+           <div />
         </div>
         <ul className="divide-y divide-gray-200">
-          {filteredAtendimentos.map((atendimento) => (
+          {sortedAtendimentos.map((atendimento) => (
             <li key={atendimento.id} className="px-6 py-4 hover:bg-gray-50">
               <div className="flex items-center justify-between">
                 <div>

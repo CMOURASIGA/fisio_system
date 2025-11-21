@@ -15,7 +15,7 @@ const PacienteDetalhePage: React.FC = () => {
     .sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
 
   if (!paciente) {
-    return <div className="text-center py-10">Paciente não encontrado.</div>;
+    return <div className="text-center py-10">Paciente nao encontrado.</div>;
   }
 
   return (
@@ -24,7 +24,7 @@ const PacienteDetalhePage: React.FC = () => {
         <Link to="/pacientes" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Prontuário do Paciente</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Prontuario do Paciente</h1>
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -35,8 +35,8 @@ const PacienteDetalhePage: React.FC = () => {
             </div>
             <div className="ml-6 text-white">
               <h2 className="text-2xl font-bold">{paciente.nome}</h2>
-              <p className="text-primary-100">{calculateAge(paciente.dataNascimento)} anos • {paciente.sexo}</p>
-              <span className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white border border-white border-opacity-20`}>
+              <p className="text-primary-100">{calculateAge(paciente.data_nascimento)} anos · {paciente.sexo}</p>
+              <span className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white border border-white border-opacity-20">
                 {paciente.status}
               </span>
             </div>
@@ -47,15 +47,15 @@ const PacienteDetalhePage: React.FC = () => {
            <div className="space-y-3">
              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Dados Pessoais</h3>
              <div className="flex items-center text-gray-600"><span className="w-24 font-medium text-gray-500">CPF:</span> {paciente.cpf}</div>
-             <div className="flex items-center text-gray-600"><span className="w-24 font-medium text-gray-500">Nascimento:</span> {formatDate(paciente.dataNascimento)}</div>
+             <div className="flex items-center text-gray-600"><span className="w-24 font-medium text-gray-500">Nascimento:</span> {formatDate(paciente.data_nascimento)}</div>
              <div className="flex items-center text-gray-600"><Phone className="h-4 w-4 mr-2 text-gray-400" /> {paciente.telefone || '-'}</div>
              <div className="flex items-center text-gray-600"><Mail className="h-4 w-4 mr-2 text-gray-400" /> {paciente.email || '-'}</div>
              <div className="flex items-start text-gray-600"><MapPin className="h-4 w-4 mr-2 mt-1 text-gray-400" /> {paciente.endereco || '-'}</div>
            </div>
            <div className="space-y-3">
-             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Observações</h3>
+             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Observacoes</h3>
              <p className="text-gray-600 text-sm bg-yellow-50 p-3 rounded border border-yellow-100">
-               {paciente.observacoes || 'Nenhuma observação registrada.'}
+               {paciente.observacoes || 'Nenhuma observacao registrada.'}
              </p>
            </div>
         </div>
@@ -63,7 +63,7 @@ const PacienteDetalhePage: React.FC = () => {
 
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Histórico de Atendimentos</h3>
+          <h3 className="text-lg font-medium text-gray-900">Historico de Atendimentos</h3>
           <Button size="sm">Novo Atendimento</Button>
         </div>
         
