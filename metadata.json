@@ -1,0 +1,5 @@
+{
+  "name": "Fisio System",
+  "description": "Sistema completo de gestão para clínicas de fisioterapia com controle de pacientes, atendimentos (SOAP), agenda e profissionais.",
+  "requestFramePermissions": []
+}
