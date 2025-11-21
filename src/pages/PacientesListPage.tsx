@@ -20,7 +20,7 @@ const PacientesListPage: React.FC = () => {
     (p.cpf && p.cpf.includes(searchTerm))
   );
 
-  const handleSave = async (data: Omit<Paciente, 'id' | 'created_at'>) => {
+  const handleSave = async (data: Omit<Paciente, 'id' | 'created_at' | 'criado_por'>) => {
     try {
       if (editingPaciente) {
         await updatePaciente({ ...editingPaciente, ...data });

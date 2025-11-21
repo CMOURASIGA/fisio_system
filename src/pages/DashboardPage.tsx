@@ -3,7 +3,7 @@ import { Users, Activity, ClipboardList, UserCog } from 'lucide-react';
 import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import ProfissionalFormModal from '../components/Profissionais/ProfissionalFormModal';
-import { AtendimentoStatus, AtendimentoTipo, UserRole } from '../types';
+import { AtendimentoStatus, UserRole } from '../types';
 
 const DashboardPage: React.FC = () => {
   const { state, addProfissional } = useClinicData();

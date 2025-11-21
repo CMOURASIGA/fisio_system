@@ -18,7 +18,7 @@ const mapAtendimentoFromDb = (row: any): Atendimento => ({
   created_at: row.created_at,
 });
 
-const mapAtendimentoToDb = (payload: Omit<Atendimento, 'id' | 'criado_por'>, userId: string) => ({
+const mapAtendimentoToDb = (payload: Omit<Atendimento, 'id' | 'criado_por' | 'created_at'>, userId: string) => ({
   // Empty strings from the form must be persisted as null to satisfy uuid casts
   paciente_id: payload.pacienteId || null,
   profissional_id: payload.profissionalId || null,
