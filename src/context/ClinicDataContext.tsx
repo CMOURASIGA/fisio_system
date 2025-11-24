@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { Paciente, Profissional, Atendimento, Relatorio, UserRole } from '../types';
+import { useAuth } from './AuthContext';
 
 // Helpers to convert between DB snake_case and frontend camelCase for atendimentos
 const mapAtendimentoFromDb = (row: any): Atendimento => ({
@@ -14,12 +15,11 @@ const mapAtendimentoFromDb = (row: any): Atendimento => ({
   observacoes: row.observacoes,
   sinaisVitais: row.sinais_vitais ?? {},
   soap: row.soap ?? {},
-  criado_por: row.criado_por,
+  clinica_id: row.clinica_id,
   created_at: row.created_at,
 });
 
-const mapAtendimentoToDb = (payload: Omit<Atendimento, 'id' | 'criado_por' | 'created_at'>, userId: string) => ({
-  // Empty strings from the form must be persisted as null to satisfy uuid casts
+const mapAtendimentoToDb = (payload: Omit<Atendimento, 'id' | 'created_at' | 'clinica_id'>, clinicaId: string) => ({
   paciente_id: payload.pacienteId || null,
   profissional_id: payload.profissionalId || null,
   data_hora: payload.dataHora,
@@ -29,7 +29,7 @@ const mapAtendimentoToDb = (payload: Omit<Atendimento, 'id' | 'criado_por' | 'cr
   observacoes: payload.observacoes ?? null,
   sinais_vitais: payload.sinaisVitais,
   soap: payload.soap,
-  criado_por: userId,
+  clinica_id: clinicaId,
 });
 
 // Helpers for profissionais (keep snake_case when talking to DB)
@@ -42,18 +42,19 @@ const mapProfissionalFromDb = (row: any): Profissional => ({
   funcao: row.funcao as UserRole,
   avatar_url: row.avatar_url,
   created_at: row.created_at,
-  criado_por: row.criado_por,
+  clinica_id: row.clinica_id,
 });
 
-const mapProfissionalToDb = (payload: Omit<Profissional, 'id' | 'created_at' | 'criado_por'>, userId?: string) => ({
+const mapProfissionalToDb = (payload: Omit<Profissional, 'id' | 'created_at' | 'clinica_id'>, clinicaId?: string) => ({
   nome: payload.nome,
   email: payload.email,
   telefone: payload.telefone || null,
   crefito: payload.crefito || null,
   funcao: payload.funcao,
   avatar_url: payload.avatar_url || null,
-  ...(userId ? { criado_por: userId } : {})
+  ...(clinicaId ? { clinica_id: clinicaId } : {}),
 });
+
 
 // State Interface
 interface ClinicState {
@@ -65,17 +66,15 @@ interface ClinicState {
 }
 
 // Actions
-type Action = 
+type Action =
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_PACIENTES'; payload: Paciente[] }
+  | { type: 'SET_DATA'; payload: { pacientes: Paciente[], profissionais: Profissional[], atendimentos: Atendimento[] } }
   | { type: 'ADD_PACIENTE'; payload: Paciente }
   | { type: 'UPDATE_PACIENTE'; payload: Paciente }
   | { type: 'DELETE_PACIENTE'; payload: string } // id
-  | { type: 'SET_PROFISSIONAIS'; payload: Profissional[] }
   | { type: 'ADD_PROFISSIONAL'; payload: Profissional }
   | { type: 'UPDATE_PROFISSIONAL'; payload: Profissional }
   | { type: 'DELETE_PROFISSIONAL'; payload: string } // id
-  | { type: 'SET_ATENDIMENTOS'; payload: Atendimento[] }
   | { type: 'ADD_ATENDIMENTO'; payload: Atendimento }
   | { type: 'UPDATE_ATENDIMENTO'; payload: Atendimento }
   | { type: 'DELETE_ATENDIMENTO'; payload: string };
@@ -85,15 +84,14 @@ const clinicReducer = (state: ClinicState, action: Action): ClinicState => {
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
-    // Pacientes
-    case 'SET_PACIENTES':
-      return { ...state, pacientes: action.payload, loading: false };
+    case 'SET_DATA':
+      return { ...state, ...action.payload, loading: false };
     case 'ADD_PACIENTE':
       return { ...state, pacientes: [...state.pacientes, action.payload] };
     case 'UPDATE_PACIENTE':
-      return { 
-        ...state, 
-        pacientes: state.pacientes.map(p => p.id === action.payload.id ? action.payload : p) 
+      return {
+        ...state,
+        pacientes: state.pacientes.map(p => p.id === action.payload.id ? action.payload : p)
       };
     case 'DELETE_PACIENTE':
       return {
@@ -101,8 +99,6 @@ const clinicReducer = (state: ClinicState, action: Action): ClinicState => {
         pacientes: state.pacientes.filter(p => p.id !== action.payload)
       };
     // Profissionais
-    case 'SET_PROFISSIONAIS':
-      return { ...state, profissionais: action.payload };
     case 'ADD_PROFISSIONAL':
       return { ...state, profissionais: [...state.profissionais, action.payload] };
     case 'UPDATE_PROFISSIONAL':
@@ -116,8 +112,6 @@ const clinicReducer = (state: ClinicState, action: Action): ClinicState => {
         profissionais: state.profissionais.filter(p => p.id !== action.payload)
       };
     // Atendimentos
-    case 'SET_ATENDIMENTOS':
-        return { ...state, atendimentos: action.payload };
     case 'ADD_ATENDIMENTO':
       return { ...state, atendimentos: [...state.atendimentos, action.payload] };
     case 'UPDATE_ATENDIMENTO':
@@ -139,16 +133,16 @@ const clinicReducer = (state: ClinicState, action: Action): ClinicState => {
 interface ClinicContextType {
   state: ClinicState;
   // Pacientes
-  addPaciente: (paciente: Omit<Paciente, 'id'| 'created_at' | 'criado_por'>) => Promise<void>;
+  addPaciente: (paciente: Omit<Paciente, 'id'| 'created_at' | 'clinica_id'>) => Promise<void>;
   updatePaciente: (paciente: Paciente) => Promise<void>;
   deletePaciente: (id: string) => Promise<void>;
   getPacienteById: (id: string) => Paciente | undefined;
   // Profissionais
-  addProfissional: (profissional: Omit<Profissional, 'id' | 'created_at' | 'criado_por'>) => Promise<void>;
+  addProfissional: (profissional: Omit<Profissional, 'id' | 'created_at' | 'clinica_id'>) => Promise<void>;
   updateProfissional: (profissional: Profissional) => Promise<void>;
   deleteProfissional: (id: string) => Promise<void>;
   // Atendimentos
-  addAtendimento: (atendimento: Omit<Atendimento, 'id' | 'criado_por' | 'created_at'>) => Promise<void>;
+  addAtendimento: (atendimento: Omit<Atendimento, 'id' | 'created_at' | 'clinica_id'>) => Promise<void>;
   updateAtendimento: (atendimento: Atendimento) => Promise<void>;
   deleteAtendimento: (id: string) => Promise<void>;
 }
@@ -156,6 +150,7 @@ interface ClinicContextType {
 const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
 
 export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const auth = useAuth(); // Get auth context
   const [state, dispatch] = useReducer(clinicReducer, {
     pacientes: [],
     profissionais: [],
@@ -165,42 +160,49 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
   });
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      
-      const [pacientesResponse, profissionaisResponse, atendimentosResponse] = await Promise.all([
-        supabase.from('pacientes').select('*'),
-        supabase.from('profissionais').select('*'),
-        supabase.from('atendimentos').select('*'),
-      ]);
+    // Only fetch data if the user has a profile (and therefore a clinica_id)
+    if (auth.profile) {
+      const fetchInitialData = async () => {
+        dispatch({ type: 'SET_LOADING', payload: true });
 
-      if (pacientesResponse.error) console.error('Error fetching pacientes:', pacientesResponse.error);
-      else dispatch({ type: 'SET_PACIENTES', payload: pacientesResponse.data || [] });
-      
-      if (profissionaisResponse.error) console.error('Error fetching profissionais:', profissionaisResponse.error);
-      else dispatch({ type: 'SET_PROFISSIONAIS', payload: (profissionaisResponse.data || []).map(mapProfissionalFromDb) });
+        const [pacientesResponse, profissionaisResponse, atendimentosResponse] = await Promise.all([
+          supabase.from('pacientes').select('*'),
+          supabase.from('profissionais').select('*'),
+          supabase.from('atendimentos').select('*'),
+        ]);
 
-      if (atendimentosResponse.error) console.error('Error fetching atendimentos:', atendimentosResponse.error);
-      else dispatch({ type: 'SET_ATENDIMENTOS', payload: (atendimentosResponse.data || []).map(mapAtendimentoFromDb) });
+        const data = {
+          pacientes: pacientesResponse.data || [],
+          profissionais: (profissionaisResponse.data || []).map(mapProfissionalFromDb),
+          atendimentos: (atendimentosResponse.data || []).map(mapAtendimentoFromDb),
+        };
 
+        if (pacientesResponse.error) console.error('Error fetching pacientes:', pacientesResponse.error);
+        if (profissionaisResponse.error) console.error('Error fetching profissionais:', profissionaisResponse.error);
+        if (atendimentosResponse.error) console.error('Error fetching atendimentos:', atendimentosResponse.error);
+
+        dispatch({ type: 'SET_DATA', payload: data });
+      };
+
+      fetchInitialData();
+    } else if (!auth.loading) {
+      // If auth is done loading and there's no profile, stop loading
       dispatch({ type: 'SET_LOADING', payload: false });
-    };
-
-    fetchInitialData();
-  }, []);
+    }
+  }, [auth.profile, auth.loading]); // Depend on auth profile
 
   // Paciente Functions
-  const addPaciente = async (pacienteData: Omit<Paciente, 'id' | 'created_at' | 'criado_por'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated to add patient.");
-    const dataToInsert = { ...pacienteData, criado_por: user.id };
-    
+  const addPaciente = async (pacienteData: Omit<Paciente, 'id' | 'created_at' | 'clinica_id'>) => {
+    if (!auth.profile?.clinica_id) throw new Error("Usuário não associado a uma clínica.");
+    const dataToInsert = { ...pacienteData, clinica_id: auth.profile.clinica_id };
+
     const { data: newPaciente, error } = await supabase.from('pacientes').insert(dataToInsert).select().single();
     if (error) { console.error('Error adding paciente:', error.message); throw error; }
     if (newPaciente) dispatch({ type: 'ADD_PACIENTE', payload: newPaciente });
   };
 
   const updatePaciente = async (pacienteData: Paciente) => {
+    // clinica_id is part of the object, no need to add it again
     const { data: updatedPaciente, error } = await supabase.from('pacientes').update(pacienteData).eq('id', pacienteData.id).select().single();
     if (error) { console.error('Error updating paciente:', error.message); throw error; }
     if (updatedPaciente) dispatch({ type: 'UPDATE_PACIENTE', payload: updatedPaciente });
@@ -215,10 +217,9 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
   const getPacienteById = (id: string) => state.pacientes.find(p => p.id === id);
 
   // Profissional Functions
-  const addProfissional = async (profissionalData: Omit<Profissional, 'id' | 'created_at' | 'criado_por'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated to add professional.");
-    const dataToInsert = mapProfissionalToDb(profissionalData, user.id);
+  const addProfissional = async (profissionalData: Omit<Profissional, 'id' | 'created_at' | 'clinica_id'>) => {
+    if (!auth.profile?.clinica_id) throw new Error("Usuário não associado a uma clínica.");
+    const dataToInsert = mapProfissionalToDb(profissionalData, auth.profile.clinica_id);
 
     const { data: newProfissional, error } = await supabase.from('profissionais').insert(dataToInsert).select().single();
     if (error) { console.error('Error adding profissional:', error.message); throw error; }
@@ -226,7 +227,7 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const updateProfissional = async (profissionalData: Profissional) => {
-    const payloadDb = mapProfissionalToDb(profissionalData, profissionalData.criado_por);
+    const payloadDb = mapProfissionalToDb(profissionalData); // clinica_id is already in the object
     const { data: updatedProfissional, error } = await supabase.from('profissionais').update(payloadDb).eq('id', profissionalData.id).select().single();
     if (error) { console.error('Error updating profissional:', { message: error.message, details: error.details, hint: error.hint, code: error.code }); throw error; }
     if (updatedProfissional) dispatch({ type: 'UPDATE_PROFISSIONAL', payload: mapProfissionalFromDb(updatedProfissional) });
@@ -239,18 +240,16 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
   }
 
   // Atendimento Functions
-  const addAtendimento = async (data: Omit<Atendimento, 'id' | 'criado_por' | 'created_at'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated to add atendimento.");
-    const dataToInsert = mapAtendimentoToDb(data, user.id);
+  const addAtendimento = async (data: Omit<Atendimento, 'id' | 'created_at' | 'clinica_id'>) => {
+    if (!auth.profile?.clinica_id) throw new Error("Usuário não associado a uma clínica.");
+    const dataToInsert = mapAtendimentoToDb(data, auth.profile.clinica_id);
     const { data: newAtendimento, error } = await supabase.from('atendimentos').insert(dataToInsert).select().single();
     if (error) { console.error('Error adding atendimento:', { message: error.message, details: error.details, hint: error.hint, code: error.code }); throw error; }
     if (newAtendimento) dispatch({ type: 'ADD_ATENDIMENTO', payload: mapAtendimentoFromDb(newAtendimento) });
   };
 
   const updateAtendimento = async (data: Atendimento) => {
-    // Keep original creator; use it in the DB payload
-    const payloadDb = mapAtendimentoToDb(data, data.criado_por);
+    const payloadDb = mapAtendimentoToDb(data, data.clinica_id);
     const { data: updated, error } = await supabase.from('atendimentos').update(payloadDb).eq('id', data.id).select().single();
     if (error) { console.error('Error updating atendimento:', { message: error.message, details: error.details, hint: error.hint, code: error.code }); throw error; }
     if (updated) dispatch({ type: 'UPDATE_ATENDIMENTO', payload: mapAtendimentoFromDb(updated) });

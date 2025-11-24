@@ -14,7 +14,7 @@ export interface Profissional {
   avatar_url?: string;
   telefone?: string;
   created_at: string;
-  criado_por: string;
+  clinica_id: string;
 }
 
 export enum Sexo {
@@ -42,7 +42,7 @@ export interface Paciente {
   observacoes?: string;
   status: PacienteStatus;
   created_at: string;
-  criado_por: string;
+  clinica_id: string;
 }
 
 export enum AtendimentoTipo {
@@ -88,7 +88,7 @@ export interface Atendimento {
   observacoes?: string;
   sinaisVitais: SinaisVitais;
   soap: SOAP;
-  criado_por: string;
+  clinica_id: string;
   created_at: string;
 }
 

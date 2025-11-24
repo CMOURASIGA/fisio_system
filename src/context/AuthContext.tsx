@@ -3,10 +3,13 @@ import { supabase } from '../lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface Profile {
-  id: string;
+  id: string; // id do perfil
+  user_id: string;
+  clinica_id: string;
+  role: string;
+  // Esses podem vir de um join com a tabela users ou profiles legada, mantendo por compatibilidade
   full_name?: string | null;
   avatar_url?: string | null;
-  role?: string | null;
 }
 
 interface AuthContextType {
@@ -94,11 +97,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const fetchProfile = async (id: string) => {
+  const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
+      // Busca na nova tabela 'perfis' usando o 'user_id'
+      const { data, error } = await supabase.from('perfis').select('*').eq('user_id', userId).single();
       if (error) {
-        // profile might not exist yet
+        // perfil pode não existir ainda
+        console.warn(`Perfil não encontrado para user_id: ${userId}`, error.message);
         setProfile(null);
         return;
       }
