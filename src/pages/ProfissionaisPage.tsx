@@ -10,7 +10,7 @@ const ProfissionaisPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProfissional, setEditingProfissional] = useState<Profissional | null>(null);
 
-  const handleSave = async (data: Omit<Profissional, 'id' | 'created_at' | 'criado_por'>) => {
+  const handleSave = async (data: Omit<Profissional, 'id' | 'created_at' | 'clinica_id'>) => {
     try {
       if (editingProfissional) {
         await updateProfissional({ ...editingProfissional, ...data });

@@ -10,7 +10,7 @@ import { maskCPF, maskPhone } from '../../utils/maskUtils';
 interface PacienteFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Paciente, 'id' | 'created_at' | 'criado_por'>) => Promise<void>;
+  onSave: (data: Omit<Paciente, 'id' | 'created_at' | 'clinica_id'>) => Promise<void>;
   initialData?: Paciente | null;
 }
 

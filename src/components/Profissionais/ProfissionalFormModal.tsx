@@ -9,7 +9,7 @@ import { OPCOES_FUNCAO } from '../../constants';
 interface ProfissionalFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Profissional, 'id' | 'created_at' | 'criado_por'>) => Promise<void>;
+  onSave: (data: Omit<Profissional, 'id' | 'created_at' | 'clinica_id'>) => Promise<void>;
   initialData?: Profissional | null;
 }
 
