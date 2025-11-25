@@ -7,7 +7,7 @@ interface Profile {
   user_id: string;
   clinica_id: string;
   role: string;
-  // Esses podem vir de um join com a tabela users ou profiles legada, mantendo por compatibilidade
+  // Campos legados/compatibilidade
   full_name?: string | null;
   avatar_url?: string | null;
 }
@@ -19,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<Profile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,49 +34,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let isMounted = true;
 
     const init = async () => {
-      // First: try to get session from URL (handles OAuth redirect where token is in hash)
       try {
-        // Supabase v2: getSessionFromUrl will parse the URL fragment if present
-        // and create a session. If there's no session in the URL it is a no-op.
-        // Wrap in try/catch because not all flows will return data here.
-        // @ts-ignore
-        const maybe = await supabase.auth.getSessionFromUrl?.();
-        if (maybe && maybe.data?.session) {
-          setSession(maybe.data.session as any);
-          setUser(maybe.data.session.user as any);
-          await fetchProfile(maybe.data.session.user.id);
-          // clear hash to avoid interfering with HashRouter or other parsing
-          try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(e) {}
-          setLoading(false);
-          return;
+        // Tenta capturar a sessao vinda do OAuth redirect (hash)
+        try {
+          // @ts-ignore - opcional em supabase-js
+          const maybe = await supabase.auth.getSessionFromUrl?.();
+          if (maybe && maybe.data?.session) {
+            setSession(maybe.data.session as any);
+            setUser(maybe.data.session.user as any);
+            await fetchOrCreateProfile(maybe.data.session.user as any);
+            try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          // ignora e segue fluxo normal
         }
 
-      } catch (err) {
-        // ignore — fallback to normal flow
+        const { data: sessionData, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Erro ao obter sessão:', error.message);
+        }
+
+        if (!isMounted) return;
+
+        const session = sessionData?.session;
+        setSession(session ?? null);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchOrCreateProfile(session.user);
+        }
+      } finally {
+        // Garante que loading é false mesmo em caso de erro
+        setLoading(false);
       }
-
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      if (!isMounted) return;
-
-      setSession(session ?? null);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      }
-
-      setLoading(false);
     };
 
-    // If redirect contained error in search params, log it for debugging and clear URL
+    // Se veio erro pela URL, loga e limpa
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.has('error')) {
         console.error('OAuth error after redirect:', Object.fromEntries(params.entries()));
-        // clear search
         history.replaceState(null, '', window.location.pathname + window.location.hash);
       }
     } catch (e) {
@@ -84,10 +84,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     init();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession ?? null);
       setUser(newSession?.user ?? null);
-      if (newSession?.user) fetchProfile(newSession.user.id);
+      if (newSession?.user) await fetchOrCreateProfile(newSession.user);
       if (!newSession) setProfile(null);
     });
 
@@ -97,20 +97,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchOrCreateProfile = async (user: User) => {
     try {
-      // Busca na nova tabela 'perfis' usando o 'user_id'
-      const { data, error } = await supabase.from('perfis').select('*').eq('user_id', userId).single();
+      const { data, error } = await supabase.from('perfis').select('*').eq('user_id', user.id).maybeSingle();
       if (error) {
-        // perfil pode não existir ainda
-        console.warn(`Perfil não encontrado para user_id: ${userId}`, error.message);
-        setProfile(null);
-        return;
+        console.warn('Erro ao buscar perfil:', error.message);
       }
-      setProfile(data as Profile);
+
+      if (data) {
+        setProfile(data as Profile);
+        return data as Profile;
+      }
+
+      const clinicaNome = user.email ? `Clinica de ${user.email}` : 'Clinica Padrao';
+      const { data: clinica, error: clinicaError } = await supabase
+        .from('clinicas')
+        .insert({ nome: clinicaNome })
+        .select()
+        .single();
+      if (clinicaError || !clinica) {
+        console.error('Erro ao criar clinica padrao:', clinicaError);
+        setProfile(null);
+        return null;
+      }
+
+      const { data: perfil, error: perfilError } = await supabase
+        .from('perfis')
+        .insert({ user_id: user.id, clinica_id: clinica.id, role: 'admin' })
+        .select()
+        .single();
+
+      if (perfilError || !perfil) {
+        console.error('Erro ao criar perfil padrao:', perfilError);
+        setProfile(null);
+        return null;
+      }
+
+      setProfile(perfil as Profile);
+      return perfil as Profile;
     } catch (err) {
+      console.error('Erro inesperado ao obter/criar perfil:', err);
       setProfile(null);
+      return null;
     }
+  };
+
+  const refreshProfile = async () => {
+    if (!user) return null;
+    return fetchOrCreateProfile(user);
   };
 
   const signInWithGoogle = async () => {
@@ -118,14 +152,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      // noop
+    }
     setProfile(null);
     setUser(null);
     setSession(null);
+    // Garantir redirect para login e limpeza de hash
+    try {
+      history.replaceState(null, '', window.location.origin + '/#/login');
+    } catch (e) {
+      window.location.href = '/#/login';
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signInWithGoogle, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
