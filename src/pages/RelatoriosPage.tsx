@@ -1,31 +1,40 @@
 import React, { useMemo, useState } from 'react';
 import { FileText, Activity, CheckCircle } from 'lucide-react';
 import { useClinicData } from '../context/ClinicDataContext';
-import { Atendimento, Paciente } from '../types';
+import { Atendimento, Paciente, ProntuarioAvaliacao } from '../types';
 import Button from '../components/UI/Button';
 import { formatDateTime } from '../utils/dateHelpers';
 
 type ReportType = 'avaliacao' | 'evolucao' | 'alta';
 
 const REPORT_TYPES = [
-  { key: 'avaliacao' as ReportType, title: 'Ficha de Avaliação', desc: 'Ficha completa de avaliação fisioterapêutica.', icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100' },
+  { key: 'avaliacao' as ReportType, title: 'Ficha de Avaliação', desc: 'Prontuário de avaliação fisioterapêutica.', icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100' },
   { key: 'evolucao' as ReportType, title: 'Evolução Clínica', desc: 'Histórico de atendimentos e evolução.', icon: FileText, color: 'text-green-600', bg: 'bg-green-100' },
   { key: 'alta' as ReportType, title: 'Relatório de Alta', desc: 'Documento formal para alta.', icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-100' },
 ];
 
+const formatDate = (iso?: string | null) => {
+  if (!iso) return '-';
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(iso));
+};
+
 const RelatoriosPage: React.FC = () => {
-  const { state } = useClinicData();
+  const { state, getAvaliacaoByPaciente } = useClinicData();
   const [selectedReport, setSelectedReport] = useState<ReportType>('avaliacao');
   const [selectedPacienteId, setSelectedPacienteId] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const paciente = useMemo(() => state.pacientes.find(p => p.id === selectedPacienteId), [state.pacientes, selectedPacienteId]);
+  const avaliacao = useMemo<ProntuarioAvaliacao | undefined>(
+    () => (selectedPacienteId ? getAvaliacaoByPaciente(selectedPacienteId) : undefined),
+    [getAvaliacaoByPaciente, selectedPacienteId]
+  );
   const atendimentosPaciente = useMemo(
     () => state.atendimentos.filter(a => a.pacienteId === selectedPacienteId).sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()),
     [state.atendimentos, selectedPacienteId]
   );
 
-  const buildReportHtml = (reportType: ReportType, pacienteData: Paciente, atendimentos: Atendimento[]) => {
+  const buildReportHtml = (reportType: ReportType, pacienteData: Paciente, atendimentos: Atendimento[], aval?: ProntuarioAvaliacao) => {
     const today = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date());
     const header = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -49,11 +58,65 @@ const RelatoriosPage: React.FC = () => {
         : null;
       return `
         ${header}
-        <h2 style="margin-top:12px;">Resumo de Avaliação</h2>
-        <p>Idade: ${ageYears !== null ? `${ageYears} anos` : '-'}</p>
-        <p>Status: ${pacienteData.status}</p>
-        <p>Observações iniciais: ${pacienteData.observacoes || '—'}</p>
-        <p>Endereço: ${pacienteData.endereco || '—'}</p>
+        <h2 style="margin-top:12px;">PRONTUÁRIO FISIOTERAPÊUTICO ( AVALIAÇÃO )</h2>
+        <p style="margin:4px 0; color:#555;">Referência : RESOLUÇÕES COFFITO nº 414/2012 - nº 80/1987 - nº 08/1978</p>
+
+        <h3 style="margin:12px 0 4px;">IDENTIFICAÇÃO DO PACIENTE</h3>
+        <p><strong>Nome completo:</strong> ${aval?.nome_completo || pacienteData.nome}</p>
+        <p><strong>Idade:</strong> ${aval?.idade ?? (ageYears !== null ? `${ageYears}` : '-')} anos</p>
+        <p><strong>Naturalidade:</strong> ${aval?.naturalidade || '–'}</p>
+        <p><strong>Estado civil:</strong> ${aval?.estado_civil || '–'}</p>
+        <p><strong>Gênero:</strong> ${aval?.genero || pacienteData.sexo || '–'}</p>
+        <p><strong>Profissão:</strong> ${aval?.profissao || '–'}</p>
+        <p><strong>Endereço residencial:</strong> ${aval?.endereco_residencial || pacienteData.endereco || '–'}</p>
+        <p><strong>Endereço comercial:</strong> ${aval?.endereco_comercial || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">HISTÓRIA CLÍNICA</h3>
+        <p><strong>Queixa principal:</strong><br/>${aval?.queixa_principal || '–'}</p>
+        <p><strong>História pregressa e atual da doença:</strong><br/>${aval?.historia_pregressa_e_atual_da_doenca || '–'}</p>
+        <p><strong>Hábitos de vida:</strong><br/>${aval?.habitos_de_vida || '–'}</p>
+        <p><strong>Tratamentos realizados:</strong><br/>${aval?.tratamentos_realizados || '–'}</p>
+        <p><strong>Antecedentes pessoais e familiares:</strong><br/>${aval?.antecedentes_pessoais_e_familiares || '–'}</p>
+        <p><strong>Outros:</strong><br/>${aval?.outros || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">EXAME CLÍNICO-FÍSICO</h3>
+        <p>${aval?.exame_clinico_fisico || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">EXAMES COMPLEMENTARES</h3>
+        <p>${aval?.exames_complementares || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">DIAGNÓSTICO FISIOTERAPÊUTICO</h3>
+        <p>${aval?.diagnostico_fisioterapeutico || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">PROGNÓSTICO</h3>
+        <p>${aval?.prognostico || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">PLANO TERAPÊUTICO</h3>
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #ddd; padding:8px;">Objetivos</th>
+              <th style="border:1px solid #ddd; padding:8px;">Qtd. de atendimentos prováveis</th>
+              <th style="border:1px solid #ddd; padding:8px;">Procedimento(s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border:1px solid #ddd; padding:8px;">${aval?.objetivos || '–'}</td>
+              <td style="border:1px solid #ddd; padding:8px;">${aval?.qtd_atendimentos_provaveis || '–'}</td>
+              <td style="border:1px solid #ddd; padding:8px;">${aval?.procedimentos || '–'}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:12px 0 4px;">IDENTIFICAÇÃO DO PROFISSIONAL ASSISTENTE</h3>
+        <p><strong>Nome do fisioterapeuta:</strong> ${aval?.nome_fisioterapeuta || '–'}</p>
+        <p><strong>CREFITO:</strong> ${aval?.crefito_fisioterapeuta || '–'}</p>
+        <p><strong>Acadêmico/estagiário:</strong> ${aval?.nome_academico_estagiario || '–'}</p>
+        <p><strong>Local:</strong> ${aval?.local || '–'}</p>
+        <p><strong>Data:</strong> ${formatDate(aval?.data_avaliacao) || today}</p>
+        <p><strong>Assinatura digital fisioterapeuta:</strong> ${aval?.assinatura_digital_fisioterapeuta ? 'Sim' : 'Não'}</p>
+        <p><strong>Assinatura digital estagiário:</strong> ${aval?.assinatura_digital_estagiario ? 'Sim' : 'Não'}</p>
       `;
     }
 
@@ -66,8 +129,8 @@ const RelatoriosPage: React.FC = () => {
                 <td>${formatDateTime(at.dataHora)}</td>
                 <td>${at.tipo}</td>
                 <td>${at.status}</td>
-                <td>${at.soap?.avaliacao || '—'}</td>
-                <td>${at.soap?.plano || '—'}</td>
+                <td>${at.soap?.avaliacao || '–'}</td>
+                <td>${at.soap?.plano || '–'}</td>
               </tr>`
             )
             .join('')
@@ -95,10 +158,10 @@ const RelatoriosPage: React.FC = () => {
     return `
       ${header}
       <h2 style="margin:12px 0;">Relatório de Alta</h2>
-      <p>Último atendimento: ${ultimo ? formatDateTime(ultimo.dataHora) : '—'}</p>
+      <p>Último atendimento: ${ultimo ? formatDateTime(ultimo.dataHora) : '–'}</p>
       <p>Status atual: Alta</p>
-      <p>Resumo clínico: ${ultimo?.soap?.avaliacao || '—'}</p>
-      <p>Plano final / recomendações: ${ultimo?.soap?.plano || '—'}</p>
+      <p>Resumo clínico: ${ultimo?.soap?.avaliacao || '–'}</p>
+      <p>Plano final / recomendações: ${ultimo?.soap?.plano || '–'}</p>
     `;
   };
 
@@ -116,7 +179,7 @@ const RelatoriosPage: React.FC = () => {
             <title>Relatório - ${paciente.nome}</title>
           </head>
           <body style="font-family: Arial, sans-serif; padding:24px; color:#111;">
-            ${buildReportHtml(selectedReport, paciente, atendimentosPaciente)}
+            ${buildReportHtml(selectedReport, paciente, atendimentosPaciente, avaliacao)}
             <script>window.onload = () => { window.print(); }</script>
           </body>
         </html>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { Paciente, Profissional, Atendimento, Relatorio, UserRole } from '../types';
+import { Paciente, Profissional, Atendimento, Relatorio, UserRole, ProntuarioAvaliacao } from '../types';
 import { useAuth } from './AuthContext';
 
 // Helpers to convert between DB snake_case and frontend camelCase for atendimentos
@@ -62,13 +62,14 @@ interface ClinicState {
   profissionais: Profissional[];
   atendimentos: Atendimento[];
   relatorios: Relatorio[];
+  avaliacoes: ProntuarioAvaliacao[];
   loading: boolean;
 }
 
 // Actions
 type Action =
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_DATA'; payload: { pacientes: Paciente[], profissionais: Profissional[], atendimentos: Atendimento[] } }
+  | { type: 'SET_DATA'; payload: { pacientes: Paciente[], profissionais: Profissional[], atendimentos: Atendimento[], avaliacoes: ProntuarioAvaliacao[] } }
   | { type: 'ADD_PACIENTE'; payload: Paciente }
   | { type: 'UPDATE_PACIENTE'; payload: Paciente }
   | { type: 'DELETE_PACIENTE'; payload: string } // id
@@ -145,6 +146,7 @@ interface ClinicContextType {
   addAtendimento: (atendimento: Omit<Atendimento, 'id' | 'created_at' | 'clinica_id'>) => Promise<void>;
   updateAtendimento: (atendimento: Atendimento) => Promise<void>;
   deleteAtendimento: (id: string) => Promise<void>;
+  getAvaliacaoByPaciente: (pacienteId: string) => ProntuarioAvaliacao | undefined;
 }
 
 const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -156,6 +158,7 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
     profissionais: [],
     atendimentos: [],
     relatorios: [],
+    avaliacoes: [],
     loading: true,
   });
 
@@ -165,21 +168,24 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
       const fetchInitialData = async () => {
         dispatch({ type: 'SET_LOADING', payload: true });
 
-        const [pacientesResponse, profissionaisResponse, atendimentosResponse] = await Promise.all([
+        const [pacientesResponse, profissionaisResponse, atendimentosResponse, avaliacoesResponse] = await Promise.all([
           supabase.from('pacientes').select('*'),
           supabase.from('profissionais').select('*'),
           supabase.from('atendimentos').select('*'),
+          supabase.from('avaliacoes').select('*'),
         ]);
 
         const data = {
           pacientes: pacientesResponse.data || [],
           profissionais: (profissionaisResponse.data || []).map(mapProfissionalFromDb),
           atendimentos: (atendimentosResponse.data || []).map(mapAtendimentoFromDb),
+          avaliacoes: (avaliacoesResponse.data || []) as ProntuarioAvaliacao[],
         };
 
         if (pacientesResponse.error) console.error('Error fetching pacientes:', pacientesResponse.error);
         if (profissionaisResponse.error) console.error('Error fetching profissionais:', profissionaisResponse.error);
         if (atendimentosResponse.error) console.error('Error fetching atendimentos:', atendimentosResponse.error);
+        if (avaliacoesResponse.error) console.error('Error fetching avaliacoes:', avaliacoesResponse.error);
 
         dispatch({ type: 'SET_DATA', payload: data });
       };
@@ -261,8 +267,18 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
     dispatch({ type: 'DELETE_ATENDIMENTO', payload: id });
   };
 
+  const getAvaliacaoByPaciente = (pacienteId: string) => {
+    return state.avaliacoes
+      .filter(a => a.paciente_id === pacienteId)
+      .sort((a, b) => {
+        const da = a.data_avaliacao ? new Date(a.data_avaliacao).getTime() : new Date(a.created_at).getTime();
+        const db = b.data_avaliacao ? new Date(b.data_avaliacao).getTime() : new Date(b.created_at).getTime();
+        return db - da;
+      })[0];
+  };
+
   return (
-    <ClinicContext.Provider value={{ state, addPaciente, updatePaciente, deletePaciente, getPacienteById, addProfissional, updateProfissional, deleteProfissional, addAtendimento, updateAtendimento, deleteAtendimento }}>
+    <ClinicContext.Provider value={{ state, addPaciente, updatePaciente, deletePaciente, getPacienteById, addProfissional, updateProfissional, deleteProfissional, addAtendimento, updateAtendimento, deleteAtendimento, getAvaliacaoByPaciente }}>
       {children}
     </ClinicContext.Provider>
   );

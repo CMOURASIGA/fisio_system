@@ -99,3 +99,39 @@ export interface Relatorio {
   dataGeracao: string;
   arquivoUrl?: string; // Mock
 }
+
+export interface ProntuarioAvaliacao {
+  id: string;
+  paciente_id: string;
+  profissional_id?: string | null;
+  clinica_id: string;
+  nome_completo: string;
+  idade?: number | null;
+  naturalidade?: string | null;
+  estado_civil?: string | null;
+  genero?: string | null;
+  profissao?: string | null;
+  endereco_residencial?: string | null;
+  endereco_comercial?: string | null;
+  queixa_principal?: string | null;
+  historia_pregressa_e_atual_da_doenca?: string | null;
+  habitos_de_vida?: string | null;
+  tratamentos_realizados?: string | null;
+  antecedentes_pessoais_e_familiares?: string | null;
+  outros?: string | null;
+  exame_clinico_fisico?: string | null;
+  exames_complementares?: string | null;
+  diagnostico_fisioterapeutico?: string | null;
+  prognostico?: string | null;
+  objetivos?: string | null;
+  qtd_atendimentos_provaveis?: string | null;
+  procedimentos?: string | null;
+  nome_fisioterapeuta?: string | null;
+  crefito_fisioterapeuta?: string | null;
+  nome_academico_estagiario?: string | null;
+  local?: string | null;
+  data_avaliacao?: string | null; // ISO date
+  assinatura_digital_fisioterapeuta?: boolean | null;
+  assinatura_digital_estagiario?: boolean | null;
+  created_at: string;
+}
