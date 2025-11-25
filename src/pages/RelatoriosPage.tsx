@@ -1,16 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { FileText, Activity, CheckCircle, ClipboardList } from 'lucide-react';
 import { useClinicData } from '../context/ClinicDataContext';
-import { Atendimento, EvolucaoClinica, Paciente, ProntuarioAvaliacao, ProntuarioTOAvaliacao } from '../types';
+import { Atendimento, EvolucaoClinica, EvolucaoTO, Paciente, ProntuarioAvaliacao, ProntuarioTOAvaliacao } from '../types';
 import Button from '../components/UI/Button';
 import { formatDateTime } from '../utils/dateHelpers';
 
-type ReportType = 'avaliacao' | 'avaliacao_to' | 'evolucao' | 'alta';
+type ReportType = 'avaliacao' | 'avaliacao_to' | 'evolucao' | 'evolucao_to' | 'alta';
 
 const REPORT_TYPES = [
   { key: 'avaliacao' as ReportType, title: 'Ficha de Avaliação (Fisioterapia)', desc: 'Prontuário de avaliação fisioterapêutica.', icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100' },
   { key: 'avaliacao_to' as ReportType, title: 'Ficha de Avaliação (Terapia Ocupacional)', desc: 'Prontuário de avaliação em Terapia Ocupacional.', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-100' },
-  { key: 'evolucao' as ReportType, title: 'Evolução Clínica', desc: 'Histórico de evoluções clínicas.', icon: FileText, color: 'text-green-600', bg: 'bg-green-100' },
+  { key: 'evolucao' as ReportType, title: 'Evolução Clínica (Fisio)', desc: 'Histórico de evoluções clínicas de Fisioterapia.', icon: FileText, color: 'text-green-600', bg: 'bg-green-100' },
+  { key: 'evolucao_to' as ReportType, title: 'Evolução Clínica (TO)', desc: 'Histórico de evoluções em Terapia Ocupacional.', icon: FileText, color: 'text-emerald-600', bg: 'bg-emerald-100' },
   { key: 'alta' as ReportType, title: 'Relatório de Alta', desc: 'Documento formal para alta.', icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-100' },
 ];
 
@@ -20,7 +21,7 @@ const formatDate = (iso?: string | null) => {
 };
 
 const RelatoriosPage: React.FC = () => {
-  const { state, getAvaliacaoByPaciente, getAvaliacaoTOByPaciente, getEvolucoesByPaciente } = useClinicData();
+  const { state, getAvaliacaoByPaciente, getAvaliacaoTOByPaciente, getEvolucoesByPaciente, getEvolucoesTOByPaciente } = useClinicData();
   const [selectedReport, setSelectedReport] = useState<ReportType>('avaliacao');
   const [selectedPacienteId, setSelectedPacienteId] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,10 @@ const RelatoriosPage: React.FC = () => {
   const evolucoesPaciente = useMemo<EvolucaoClinica[]>(
     () => (selectedPacienteId ? getEvolucoesByPaciente(selectedPacienteId) : []),
     [getEvolucoesByPaciente, selectedPacienteId]
+  );
+  const evolucoesTOPaciente = useMemo<EvolucaoTO[]>(
+    () => (selectedPacienteId ? getEvolucoesTOByPaciente(selectedPacienteId) : []),
+    [getEvolucoesTOByPaciente, selectedPacienteId]
   );
   const atendimentosPaciente = useMemo(
     () => state.atendimentos.filter(a => a.pacienteId === selectedPacienteId).sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()),
@@ -204,26 +209,37 @@ const RelatoriosPage: React.FC = () => {
       `;
     }
 
-    if (reportType === 'evolucao') {
-      const evolucoesRows = (evolucoes || []).length
-        ? (evolucoes || [])
-            .map(
-              (ev) => `
+    if (reportType === 'evolucao' || reportType === 'evolucao_to') {
+      const evList = reportType === 'evolucao_to'
+        ? ((evolucoes || []) as EvolucaoTO[])
+        : ((evolucoes || []) as EvolucaoClinica[]);
+      const evolucoesRows = evList.length
+        ? evList
+            .map((ev: EvolucaoClinica | EvolucaoTO) => {
+              const nomeProf =
+                'nome_fisioterapeuta' in ev
+                  ? (ev as EvolucaoClinica).nome_fisioterapeuta || (ev as EvolucaoClinica).nome_academico_estagiario || '–'
+                  : (ev as EvolucaoTO).nome_terapeuta_ocupacional || (ev as EvolucaoTO).nome_academico_estagiario_to || '–';
+              const crefito =
+                'crefito_fisioterapeuta' in ev
+                  ? (ev as EvolucaoClinica).crefito_fisioterapeuta || '–'
+                  : (ev as EvolucaoTO).crefito_terapeuta_ocupacional || '–';
+              return `
               <tr>
                 <td>${formatDate(ev.data_evolucao)} ${ev.hora_evolucao || ''}</td>
                 <td>${ev.numero_sessao || '–'}</td>
                 <td>${ev.procedimentos || '–'}</td>
                 <td>${ev.intercorrencias || '–'}</td>
                 <td>${ev.evolucao_estado_saude || '–'}</td>
-                <td>${ev.nome_fisioterapeuta || ev.nome_academico_estagiario || '–'}</td>
-                <td>${ev.crefito_fisioterapeuta || '–'}</td>
-              </tr>`
-            )
+                <td>${nomeProf}</td>
+                <td>${crefito}</td>
+              </tr>`;
+            })
             .join('')
         : '<tr><td colspan="7" style="text-align:center;">Nenhuma evolução registrada.</td></tr>';
       return `
         ${header}
-        <h2 style="margin:12px 0;">Evolução Clínica</h2>
+        <h2 style="margin:12px 0;">Evolução Clínica ${reportType === 'evolucao_to' ? '(Terapia Ocupacional)' : ''}</h2>
         <table style="width:100%; border-collapse:collapse;">
           <thead>
             <tr>
@@ -268,7 +284,14 @@ const RelatoriosPage: React.FC = () => {
             <title>Relatório - ${paciente.nome}</title>
           </head>
           <body style="font-family: Arial, sans-serif; padding:24px; color:#111;">
-            ${buildReportHtml(selectedReport, paciente, atendimentosPaciente, avaliacao, avaliacaoTO, evolucoesPaciente)}
+            ${buildReportHtml(
+              selectedReport,
+              paciente,
+              atendimentosPaciente,
+              avaliacao,
+              avaliacaoTO,
+              selectedReport === 'evolucao_to' ? evolucoesTOPaciente : evolucoesPaciente
+            )}
             <script>window.onload = () => { window.print(); }</script>
           </body>
         </html>

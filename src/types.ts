@@ -191,3 +191,23 @@ export interface ProntuarioTOAvaliacao {
   assinatura_digital_estagiario?: boolean | null;
   created_at: string;
 }
+
+export interface EvolucaoTO {
+  id: string;
+  avaliacao_to_id?: string | null;
+  paciente_id: string;
+  profissional_id?: string | null;
+  clinica_id: string;
+  data_evolucao: string; // ISO date
+  hora_evolucao?: string | null; // HH:MM:SS
+  numero_sessao?: number | null;
+  procedimentos?: string | null;
+  intercorrencias?: string | null;
+  evolucao_estado_saude?: string | null;
+  nome_terapeuta_ocupacional?: string | null;
+  crefito_terapeuta_ocupacional?: string | null;
+  nome_academico_estagiario_to?: string | null;
+  assinatura_digital_terapeuta?: boolean | null;
+  assinatura_digital_estagiario?: boolean | null;
+  created_at: string;
+}
