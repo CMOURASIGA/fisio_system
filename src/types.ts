@@ -135,3 +135,59 @@ export interface ProntuarioAvaliacao {
   assinatura_digital_estagiario?: boolean | null;
   created_at: string;
 }
+
+export interface EvolucaoClinica {
+  id: string;
+  avaliacao_id?: string | null;
+  paciente_id: string;
+  profissional_id?: string | null;
+  clinica_id: string;
+  data_evolucao: string; // ISO date
+  hora_evolucao?: string | null; // HH:MM:SS
+  numero_sessao?: number | null;
+  procedimentos?: string | null;
+  intercorrencias?: string | null;
+  evolucao_estado_saude?: string | null;
+  nome_fisioterapeuta?: string | null;
+  crefito_fisioterapeuta?: string | null;
+  nome_academico_estagiario?: string | null;
+  assinatura_digital_fisioterapeuta?: boolean | null;
+  assinatura_digital_estagiario?: boolean | null;
+  created_at: string;
+}
+
+export interface ProntuarioTOAvaliacao {
+  id: string;
+  paciente_id: string;
+  profissional_id?: string | null;
+  clinica_id: string;
+  nome_completo: string;
+  idade?: number | null;
+  naturalidade?: string | null;
+  estado_civil?: string | null;
+  genero?: string | null;
+  profissao?: string | null;
+  endereco_residencial?: string | null;
+  endereco_comercial?: string | null;
+  queixa_principal?: string | null;
+  historia_pregressa_e_atual_da_doenca?: string | null;
+  habitos_de_vida?: string | null;
+  tratamentos_realizados?: string | null;
+  antecedentes_pessoais_e_familiares?: string | null;
+  outros?: string | null;
+  exame_clinico_fisico_educacional_social?: string | null;
+  exames_complementares?: string | null;
+  diagnostico_terapeutico_ocupacional?: string | null;
+  prognostico_terapeutico_ocupacional?: string | null;
+  objetivos?: string | null;
+  qtd_atendimentos_provaveis?: string | null;
+  procedimentos?: string | null;
+  nome_terapeuta_ocupacional?: string | null;
+  crefito_terapeuta_ocupacional?: string | null;
+  nome_academico_estagiario_to?: string | null;
+  local?: string | null;
+  data_avaliacao?: string | null;
+  assinatura_digital_terapeuta?: boolean | null;
+  assinatura_digital_estagiario?: boolean | null;
+  created_at: string;
+}

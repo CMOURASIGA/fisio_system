@@ -1,15 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { FileText, Activity, CheckCircle } from 'lucide-react';
+import { FileText, Activity, CheckCircle, ClipboardList } from 'lucide-react';
 import { useClinicData } from '../context/ClinicDataContext';
-import { Atendimento, Paciente, ProntuarioAvaliacao } from '../types';
+import { Atendimento, EvolucaoClinica, Paciente, ProntuarioAvaliacao, ProntuarioTOAvaliacao } from '../types';
 import Button from '../components/UI/Button';
 import { formatDateTime } from '../utils/dateHelpers';
 
-type ReportType = 'avaliacao' | 'evolucao' | 'alta';
+type ReportType = 'avaliacao' | 'avaliacao_to' | 'evolucao' | 'alta';
 
 const REPORT_TYPES = [
-  { key: 'avaliacao' as ReportType, title: 'Ficha de Avaliação', desc: 'Prontuário de avaliação fisioterapêutica.', icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100' },
-  { key: 'evolucao' as ReportType, title: 'Evolução Clínica', desc: 'Histórico de atendimentos e evolução.', icon: FileText, color: 'text-green-600', bg: 'bg-green-100' },
+  { key: 'avaliacao' as ReportType, title: 'Ficha de Avaliação (Fisioterapia)', desc: 'Prontuário de avaliação fisioterapêutica.', icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100' },
+  { key: 'avaliacao_to' as ReportType, title: 'Ficha de Avaliação (Terapia Ocupacional)', desc: 'Prontuário de avaliação em Terapia Ocupacional.', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-100' },
+  { key: 'evolucao' as ReportType, title: 'Evolução Clínica', desc: 'Histórico de evoluções clínicas.', icon: FileText, color: 'text-green-600', bg: 'bg-green-100' },
   { key: 'alta' as ReportType, title: 'Relatório de Alta', desc: 'Documento formal para alta.', icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-100' },
 ];
 
@@ -19,7 +20,7 @@ const formatDate = (iso?: string | null) => {
 };
 
 const RelatoriosPage: React.FC = () => {
-  const { state, getAvaliacaoByPaciente } = useClinicData();
+  const { state, getAvaliacaoByPaciente, getAvaliacaoTOByPaciente, getEvolucoesByPaciente } = useClinicData();
   const [selectedReport, setSelectedReport] = useState<ReportType>('avaliacao');
   const [selectedPacienteId, setSelectedPacienteId] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -29,12 +30,27 @@ const RelatoriosPage: React.FC = () => {
     () => (selectedPacienteId ? getAvaliacaoByPaciente(selectedPacienteId) : undefined),
     [getAvaliacaoByPaciente, selectedPacienteId]
   );
+  const avaliacaoTO = useMemo<ProntuarioTOAvaliacao | undefined>(
+    () => (selectedPacienteId ? getAvaliacaoTOByPaciente(selectedPacienteId) : undefined),
+    [getAvaliacaoTOByPaciente, selectedPacienteId]
+  );
+  const evolucoesPaciente = useMemo<EvolucaoClinica[]>(
+    () => (selectedPacienteId ? getEvolucoesByPaciente(selectedPacienteId) : []),
+    [getEvolucoesByPaciente, selectedPacienteId]
+  );
   const atendimentosPaciente = useMemo(
     () => state.atendimentos.filter(a => a.pacienteId === selectedPacienteId).sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()),
     [state.atendimentos, selectedPacienteId]
   );
 
-  const buildReportHtml = (reportType: ReportType, pacienteData: Paciente, atendimentos: Atendimento[], aval?: ProntuarioAvaliacao) => {
+  const buildReportHtml = (
+    reportType: ReportType,
+    pacienteData: Paciente,
+    atendimentos: Atendimento[],
+    aval?: ProntuarioAvaliacao,
+    avalTO?: ProntuarioTOAvaliacao,
+    evolucoes?: EvolucaoClinica[],
+  ) => {
     const today = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date());
     const header = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -120,21 +136,91 @@ const RelatoriosPage: React.FC = () => {
       `;
     }
 
+    if (reportType === 'avaliacao_to') {
+      const ageYears = pacienteData.data_nascimento
+        ? Math.floor((Date.now() - new Date(pacienteData.data_nascimento).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+        : null;
+      return `
+        ${header}
+        <h2 style="margin-top:12px;">PRONTUÁRIO TERAPÊUTICO OCUPACIONAL ( AVALIAÇÃO )</h2>
+        <p style="margin:4px 0; color:#555;">Referência : RESOLUÇÕES COFFITO nº 414/2012 - nº 80/1987 - nº 08/1978</p>
+
+        <h3 style="margin:12px 0 4px;">IDENTIFICAÇÃO DO PACIENTE</h3>
+        <p><strong>Nome completo:</strong> ${avalTO?.nome_completo || pacienteData.nome}</p>
+        <p><strong>Idade:</strong> ${avalTO?.idade ?? (ageYears !== null ? `${ageYears}` : '-')} anos</p>
+        <p><strong>Naturalidade:</strong> ${avalTO?.naturalidade || '–'}</p>
+        <p><strong>Estado civil:</strong> ${avalTO?.estado_civil || '–'}</p>
+        <p><strong>Gênero:</strong> ${avalTO?.genero || pacienteData.sexo || '–'}</p>
+        <p><strong>Profissão:</strong> ${avalTO?.profissao || '–'}</p>
+        <p><strong>Endereço residencial:</strong> ${avalTO?.endereco_residencial || pacienteData.endereco || '–'}</p>
+        <p><strong>Endereço comercial:</strong> ${avalTO?.endereco_comercial || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">HISTÓRIA CLÍNICA</h3>
+        <p><strong>Queixa principal:</strong><br/>${avalTO?.queixa_principal || '–'}</p>
+        <p><strong>História pregressa e atual da doença:</strong><br/>${avalTO?.historia_pregressa_e_atual_da_doenca || '–'}</p>
+        <p><strong>Hábitos de vida:</strong><br/>${avalTO?.habitos_de_vida || '–'}</p>
+        <p><strong>Tratamentos realizados:</strong><br/>${avalTO?.tratamentos_realizados || '–'}</p>
+        <p><strong>Antecedentes pessoais e familiares:</strong><br/>${avalTO?.antecedentes_pessoais_e_familiares || '–'}</p>
+        <p><strong>Outros:</strong><br/>${avalTO?.outros || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">EXAME CLÍNICO-FÍSICO/EDUCACIONAL/SOCIAL</h3>
+        <p>${avalTO?.exame_clinico_fisico_educacional_social || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">EXAMES COMPLEMENTARES</h3>
+        <p>${avalTO?.exames_complementares || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">DIAGNÓSTICO TERAPÊUTICO OCUPACIONAL</h3>
+        <p>${avalTO?.diagnostico_terapeutico_ocupacional || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">PROGNÓSTICO TERAPÊUTICO OCUPACIONAL</h3>
+        <p>${avalTO?.prognostico_terapeutico_ocupacional || '–'}</p>
+
+        <h3 style="margin:12px 0 4px;">PLANO TERAPÊUTICO OCUPACIONAL</h3>
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #ddd; padding:8px;">Objetivos</th>
+              <th style="border:1px solid #ddd; padding:8px;">Qtd. de atendimentos prováveis</th>
+              <th style="border:1px solid #ddd; padding:8px;">Procedimento(s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border:1px solid #ddd; padding:8px;">${avalTO?.objetivos || '–'}</td>
+              <td style="border:1px solid #ddd; padding:8px;">${avalTO?.qtd_atendimentos_provaveis || '–'}</td>
+              <td style="border:1px solid #ddd; padding:8px;">${avalTO?.procedimentos || '–'}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:12px 0 4px;">IDENTIFICAÇÃO DO PROFISSIONAL ASSISTENTE</h3>
+        <p><strong>Nome do terapeuta ocupacional:</strong> ${avalTO?.nome_terapeuta_ocupacional || '–'}</p>
+        <p><strong>CREFITO:</strong> ${avalTO?.crefito_terapeuta_ocupacional || '–'}</p>
+        <p><strong>Acadêmico/estagiário:</strong> ${avalTO?.nome_academico_estagiario_to || '–'}</p>
+        <p><strong>Local:</strong> ${avalTO?.local || '–'}</p>
+        <p><strong>Data:</strong> ${formatDate(avalTO?.data_avaliacao) || today}</p>
+        <p><strong>Assinatura digital TO:</strong> ${avalTO?.assinatura_digital_terapeuta ? 'Sim' : 'Não'}</p>
+        <p><strong>Assinatura digital estagiário:</strong> ${avalTO?.assinatura_digital_estagiario ? 'Sim' : 'Não'}</p>
+      `;
+    }
+
     if (reportType === 'evolucao') {
-      const rows = atendimentos.length
-        ? atendimentos
+      const evolucoesRows = (evolucoes || []).length
+        ? (evolucoes || [])
             .map(
-              (at) => `
+              (ev) => `
               <tr>
-                <td>${formatDateTime(at.dataHora)}</td>
-                <td>${at.tipo}</td>
-                <td>${at.status}</td>
-                <td>${at.soap?.avaliacao || '–'}</td>
-                <td>${at.soap?.plano || '–'}</td>
+                <td>${formatDate(ev.data_evolucao)} ${ev.hora_evolucao || ''}</td>
+                <td>${ev.numero_sessao || '–'}</td>
+                <td>${ev.procedimentos || '–'}</td>
+                <td>${ev.intercorrencias || '–'}</td>
+                <td>${ev.evolucao_estado_saude || '–'}</td>
+                <td>${ev.nome_fisioterapeuta || ev.nome_academico_estagiario || '–'}</td>
+                <td>${ev.crefito_fisioterapeuta || '–'}</td>
               </tr>`
             )
             .join('')
-        : '<tr><td colspan="5" style="text-align:center;">Nenhum atendimento registrado.</td></tr>';
+        : '<tr><td colspan="7" style="text-align:center;">Nenhuma evolução registrada.</td></tr>';
       return `
         ${header}
         <h2 style="margin:12px 0;">Evolução Clínica</h2>
@@ -142,26 +228,29 @@ const RelatoriosPage: React.FC = () => {
           <thead>
             <tr>
               <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Data/Hora</th>
-              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Tipo</th>
-              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Status</th>
-              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Avaliação</th>
-              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Plano</th>
+              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Sessão</th>
+              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Procedimentos</th>
+              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Intercorrências</th>
+              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Evolução do estado</th>
+              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Profissional</th>
+              <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">CREFITO</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>${evolucoesRows}</tbody>
         </table>
       `;
     }
 
-    // alta
-    const ultimo = atendimentos[0];
+    const ultimoEvolucao = evolucoes && evolucoes.length ? evolucoes[0] : undefined;
+    const ultimoAtendimento = atendimentos[0];
     return `
       ${header}
       <h2 style="margin:12px 0;">Relatório de Alta</h2>
-      <p>Último atendimento: ${ultimo ? formatDateTime(ultimo.dataHora) : '–'}</p>
+      <p>Última evolução: ${ultimoEvolucao ? `${formatDate(ultimoEvolucao.data_evolucao)} ${ultimoEvolucao.hora_evolucao || ''}` : '–'}</p>
+      <p>Último atendimento: ${ultimoAtendimento ? formatDateTime(ultimoAtendimento.dataHora) : '–'}</p>
       <p>Status atual: Alta</p>
-      <p>Resumo clínico: ${ultimo?.soap?.avaliacao || '–'}</p>
-      <p>Plano final / recomendações: ${ultimo?.soap?.plano || '–'}</p>
+      <p>Resumo clínico: ${ultimoEvolucao?.evolucao_estado_saude || ultimoAtendimento?.soap?.avaliacao || '–'}</p>
+      <p>Plano final / recomendações: ${ultimoAtendimento?.soap?.plano || '–'}</p>
     `;
   };
 
@@ -179,7 +268,7 @@ const RelatoriosPage: React.FC = () => {
             <title>Relatório - ${paciente.nome}</title>
           </head>
           <body style="font-family: Arial, sans-serif; padding:24px; color:#111;">
-            ${buildReportHtml(selectedReport, paciente, atendimentosPaciente, avaliacao)}
+            ${buildReportHtml(selectedReport, paciente, atendimentosPaciente, avaliacao, avaliacaoTO, evolucoesPaciente)}
             <script>window.onload = () => { window.print(); }</script>
           </body>
         </html>
@@ -210,7 +299,7 @@ const RelatoriosPage: React.FC = () => {
         <p className="text-gray-500">Gere documentos clínicos a partir dos atendimentos e dados dos pacientes.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {REPORT_TYPES.map((report) => (
           <button
             type="button"

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { Paciente, Profissional, Atendimento, Relatorio, UserRole, ProntuarioAvaliacao } from '../types';
+import { Paciente, Profissional, Atendimento, Relatorio, UserRole, ProntuarioAvaliacao, EvolucaoClinica, ProntuarioTOAvaliacao } from '../types';
 import { useAuth } from './AuthContext';
 
 // Helpers to convert between DB snake_case and frontend camelCase for atendimentos
@@ -63,13 +63,15 @@ interface ClinicState {
   atendimentos: Atendimento[];
   relatorios: Relatorio[];
   avaliacoes: ProntuarioAvaliacao[];
+  evolucoes: EvolucaoClinica[];
+  avaliacoesTO: ProntuarioTOAvaliacao[];
   loading: boolean;
 }
 
 // Actions
 type Action =
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_DATA'; payload: { pacientes: Paciente[], profissionais: Profissional[], atendimentos: Atendimento[], avaliacoes: ProntuarioAvaliacao[] } }
+  | { type: 'SET_DATA'; payload: { pacientes: Paciente[], profissionais: Profissional[], atendimentos: Atendimento[], avaliacoes: ProntuarioAvaliacao[], evolucoes: EvolucaoClinica[], avaliacoesTO: ProntuarioTOAvaliacao[] } }
   | { type: 'ADD_PACIENTE'; payload: Paciente }
   | { type: 'UPDATE_PACIENTE'; payload: Paciente }
   | { type: 'DELETE_PACIENTE'; payload: string } // id
@@ -147,6 +149,8 @@ interface ClinicContextType {
   updateAtendimento: (atendimento: Atendimento) => Promise<void>;
   deleteAtendimento: (id: string) => Promise<void>;
   getAvaliacaoByPaciente: (pacienteId: string) => ProntuarioAvaliacao | undefined;
+  getAvaliacaoTOByPaciente: (pacienteId: string) => ProntuarioTOAvaliacao | undefined;
+  getEvolucoesByPaciente: (pacienteId: string) => EvolucaoClinica[];
 }
 
 const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -159,6 +163,8 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
     atendimentos: [],
     relatorios: [],
     avaliacoes: [],
+    evolucoes: [],
+    avaliacoesTO: [],
     loading: true,
   });
 
@@ -168,11 +174,13 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
       const fetchInitialData = async () => {
         dispatch({ type: 'SET_LOADING', payload: true });
 
-        const [pacientesResponse, profissionaisResponse, atendimentosResponse, avaliacoesResponse] = await Promise.all([
+        const [pacientesResponse, profissionaisResponse, atendimentosResponse, avaliacoesResponse, evolucoesResponse, avaliacoesTOResponse] = await Promise.all([
           supabase.from('pacientes').select('*'),
           supabase.from('profissionais').select('*'),
           supabase.from('atendimentos').select('*'),
           supabase.from('avaliacoes').select('*'),
+          supabase.from('evolucoes').select('*'),
+          supabase.from('avaliacoes_to').select('*'),
         ]);
 
         const data = {
@@ -180,12 +188,16 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
           profissionais: (profissionaisResponse.data || []).map(mapProfissionalFromDb),
           atendimentos: (atendimentosResponse.data || []).map(mapAtendimentoFromDb),
           avaliacoes: (avaliacoesResponse.data || []) as ProntuarioAvaliacao[],
+          evolucoes: (evolucoesResponse.data || []) as EvolucaoClinica[],
+          avaliacoesTO: (avaliacoesTOResponse.data || []) as ProntuarioTOAvaliacao[],
         };
 
         if (pacientesResponse.error) console.error('Error fetching pacientes:', pacientesResponse.error);
         if (profissionaisResponse.error) console.error('Error fetching profissionais:', profissionaisResponse.error);
         if (atendimentosResponse.error) console.error('Error fetching atendimentos:', atendimentosResponse.error);
         if (avaliacoesResponse.error) console.error('Error fetching avaliacoes:', avaliacoesResponse.error);
+        if (evolucoesResponse.error) console.error('Error fetching evolucoes:', evolucoesResponse.error);
+        if (avaliacoesTOResponse.error) console.error('Error fetching avaliacoes TO:', avaliacoesTOResponse.error);
 
         dispatch({ type: 'SET_DATA', payload: data });
       };
@@ -277,8 +289,28 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
       })[0];
   };
 
+  const getAvaliacaoTOByPaciente = (pacienteId: string) => {
+    return state.avaliacoesTO
+      .filter(a => a.paciente_id === pacienteId)
+      .sort((a, b) => {
+        const da = a.data_avaliacao ? new Date(a.data_avaliacao).getTime() : new Date(a.created_at).getTime();
+        const db = b.data_avaliacao ? new Date(b.data_avaliacao).getTime() : new Date(b.created_at).getTime();
+        return db - da;
+      })[0];
+  };
+
+  const getEvolucoesByPaciente = (pacienteId: string) => {
+    return state.evolucoes
+      .filter(e => e.paciente_id === pacienteId)
+      .sort((a, b) => {
+        const da = a.data_evolucao ? new Date(a.data_evolucao).getTime() : new Date(a.created_at).getTime();
+        const db = b.data_evolucao ? new Date(b.data_evolucao).getTime() : new Date(b.created_at).getTime();
+        return db - da;
+      });
+  };
+
   return (
-    <ClinicContext.Provider value={{ state, addPaciente, updatePaciente, deletePaciente, getPacienteById, addProfissional, updateProfissional, deleteProfissional, addAtendimento, updateAtendimento, deleteAtendimento, getAvaliacaoByPaciente }}>
+    <ClinicContext.Provider value={{ state, addPaciente, updatePaciente, deletePaciente, getPacienteById, addProfissional, updateProfissional, deleteProfissional, addAtendimento, updateAtendimento, deleteAtendimento, getAvaliacaoByPaciente, getAvaliacaoTOByPaciente, getEvolucoesByPaciente }}>
       {children}
     </ClinicContext.Provider>
   );
