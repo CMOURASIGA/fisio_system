@@ -19,14 +19,40 @@ interface EvolucaoModalProps {
 const EvolucaoModal: React.FC<EvolucaoModalProps> = ({ isOpen, onClose, pacientes, profissionais, tipo, onSave }) => {
   const [pacienteId, setPacienteId] = useState('');
   const [profissionalId, setProfissionalId] = useState('');
-  const [form, setForm] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<Record<string, string>>({
+    data_evolucao: '',
+    hora_evolucao: '',
+    numero_sessao: '',
+    procedimentos: '',
+    intercorrencias: '',
+    evolucao_estado_saude: '',
+    nome_fisioterapeuta: '',
+    crefito_fisioterapeuta: '',
+    nome_academico_estagiario: '',
+    nome_terapeuta_ocupacional: '',
+    crefito_terapeuta_ocupacional: '',
+    nome_academico_estagiario_to: '',
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setPacienteId('');
       setProfissionalId('');
-      setForm({});
+      setForm({
+        data_evolucao: '',
+        hora_evolucao: '',
+        numero_sessao: '',
+        procedimentos: '',
+        intercorrencias: '',
+        evolucao_estado_saude: '',
+        nome_fisioterapeuta: '',
+        crefito_fisioterapeuta: '',
+        nome_academico_estagiario: '',
+        nome_terapeuta_ocupacional: '',
+        crefito_terapeuta_ocupacional: '',
+        nome_academico_estagiario_to: '',
+      });
     }
   }, [isOpen]);
 
