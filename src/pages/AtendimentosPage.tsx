@@ -3,13 +3,20 @@ import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import AtendimentoFormModal from '../components/Atendimentos/AtendimentoFormModal';
 import { formatDateTime } from '../utils/dateHelpers';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ClipboardPlus } from 'lucide-react';
 import { Atendimento } from '../types';
+import AvaliacaoModal from '../components/Prontuario/AvaliacaoModal';
+import EvolucaoModal from '../components/Prontuario/EvolucaoModal';
 
 const AtendimentosPage: React.FC = () => {
   const { state, deleteAtendimento } = useClinicData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAtendimento, setEditingAtendimento] = useState<Atendimento | null>(null);
+  const [openAvalFisio, setOpenAvalFisio] = useState(false);
+  const [openAvalTO, setOpenAvalTO] = useState(false);
+  const [openEvoFisio, setOpenEvoFisio] = useState(false);
+  const [openEvoTO, setOpenEvoTO] = useState(false);
+  const { addAvaliacaoFisio, addAvaliacaoTO, addEvolucaoFisio, addEvolucaoTO } = useClinicData();
 
   const getPacienteName = (id: string) => state.pacientes.find(p => p.id === id)?.nome || 'Desconhecido';
   const getProfissionalName = (id: string) => state.profissionais.find(p => p.id === id)?.nome || 'Desconhecido';
@@ -40,10 +47,26 @@ const AtendimentosPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Atendimentos</h1>
-        <Button onClick={handleOpenNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Atendimento
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={handleOpenNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Atendimento
+          </Button>
+          <Button variant="secondary" onClick={() => setOpenAvalFisio(true)}>
+            <ClipboardPlus className="h-4 w-4 mr-2" />
+            Avaliação Fisio
+          </Button>
+          <Button variant="secondary" onClick={() => setOpenAvalTO(true)}>
+            <ClipboardPlus className="h-4 w-4 mr-2" />
+            Avaliação TO
+          </Button>
+          <Button variant="outline" onClick={() => setOpenEvoFisio(true)}>
+            Evolução Fisio
+          </Button>
+          <Button variant="outline" onClick={() => setOpenEvoTO(true)}>
+            Evolução TO
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white shadow overflow-hidden rounded-md">
@@ -99,6 +122,39 @@ const AtendimentosPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditingAtendimento(null); }}
         initialData={editingAtendimento}
+      />
+
+      <AvaliacaoModal
+        isOpen={openAvalFisio}
+        onClose={() => setOpenAvalFisio(false)}
+        pacientes={state.pacientes}
+        profissionais={state.profissionais}
+        tipo="fisio"
+        onSave={addAvaliacaoFisio}
+      />
+      <AvaliacaoModal
+        isOpen={openAvalTO}
+        onClose={() => setOpenAvalTO(false)}
+        pacientes={state.pacientes}
+        profissionais={state.profissionais}
+        tipo="to"
+        onSave={addAvaliacaoTO}
+      />
+      <EvolucaoModal
+        isOpen={openEvoFisio}
+        onClose={() => setOpenEvoFisio(false)}
+        pacientes={state.pacientes}
+        profissionais={state.profissionais}
+        tipo="fisio"
+        onSave={addEvolucaoFisio}
+      />
+      <EvolucaoModal
+        isOpen={openEvoTO}
+        onClose={() => setOpenEvoTO(false)}
+        pacientes={state.pacientes}
+        profissionais={state.profissionais}
+        tipo="to"
+        onSave={addEvolucaoTO}
       />
     </div>
   );

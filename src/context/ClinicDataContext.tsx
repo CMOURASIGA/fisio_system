@@ -81,7 +81,11 @@ type Action =
   | { type: 'DELETE_PROFISSIONAL'; payload: string } // id
   | { type: 'ADD_ATENDIMENTO'; payload: Atendimento }
   | { type: 'UPDATE_ATENDIMENTO'; payload: Atendimento }
-  | { type: 'DELETE_ATENDIMENTO'; payload: string };
+  | { type: 'DELETE_ATENDIMENTO'; payload: string }
+  | { type: 'ADD_AVALIACAO'; payload: ProntuarioAvaliacao }
+  | { type: 'ADD_AVALIACAO_TO'; payload: ProntuarioTOAvaliacao }
+  | { type: 'ADD_EVOLUCAO'; payload: EvolucaoClinica }
+  | { type: 'ADD_EVOLUCAO_TO'; payload: EvolucaoTO };
 
 // Reducer
 const clinicReducer = (state: ClinicState, action: Action): ClinicState => {
@@ -128,6 +132,14 @@ const clinicReducer = (state: ClinicState, action: Action): ClinicState => {
         ...state,
         atendimentos: state.atendimentos.filter(a => a.id !== action.payload)
       };
+    case 'ADD_AVALIACAO':
+      return { ...state, avaliacoes: [...state.avaliacoes, action.payload] };
+    case 'ADD_AVALIACAO_TO':
+      return { ...state, avaliacoesTO: [...state.avaliacoesTO, action.payload] };
+    case 'ADD_EVOLUCAO':
+      return { ...state, evolucoes: [...state.evolucoes, action.payload] };
+    case 'ADD_EVOLUCAO_TO':
+      return { ...state, evolucoesTO: [...state.evolucoesTO, action.payload] };
     default:
       return state;
   }
@@ -153,6 +165,10 @@ interface ClinicContextType {
   getAvaliacaoTOByPaciente: (pacienteId: string) => ProntuarioTOAvaliacao | undefined;
   getEvolucoesByPaciente: (pacienteId: string) => EvolucaoClinica[];
   getEvolucoesTOByPaciente: (pacienteId: string) => EvolucaoTO[];
+  addAvaliacaoFisio: (data: Omit<ProntuarioAvaliacao, 'id' | 'clinica_id' | 'created_at'>) => Promise<void>;
+  addAvaliacaoTO: (data: Omit<ProntuarioTOAvaliacao, 'id' | 'clinica_id' | 'created_at'>) => Promise<void>;
+  addEvolucaoFisio: (data: Omit<EvolucaoClinica, 'id' | 'clinica_id' | 'created_at'>) => Promise<void>;
+  addEvolucaoTO: (data: Omit<EvolucaoTO, 'id' | 'clinica_id' | 'created_at'>) => Promise<void>;
 }
 
 const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -285,6 +301,39 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
     dispatch({ type: 'DELETE_ATENDIMENTO', payload: id });
   };
 
+  // Avaliações / Evoluções
+  const addAvaliacaoFisio = async (data: Omit<ProntuarioAvaliacao, 'id' | 'clinica_id' | 'created_at'>) => {
+    if (!auth.profile?.clinica_id) throw new Error('Usuário não associado a uma clínica.');
+    const payload = { ...data, clinica_id: auth.profile.clinica_id };
+    const { data: created, error } = await supabase.from('avaliacoes').insert(payload).select().single();
+    if (error) throw error;
+    if (created) dispatch({ type: 'ADD_AVALIACAO', payload: created });
+  };
+
+  const addAvaliacaoTO = async (data: Omit<ProntuarioTOAvaliacao, 'id' | 'clinica_id' | 'created_at'>) => {
+    if (!auth.profile?.clinica_id) throw new Error('Usuário não associado a uma clínica.');
+    const payload = { ...data, clinica_id: auth.profile.clinica_id };
+    const { data: created, error } = await supabase.from('avaliacoes_to').insert(payload).select().single();
+    if (error) throw error;
+    if (created) dispatch({ type: 'ADD_AVALIACAO_TO', payload: created });
+  };
+
+  const addEvolucaoFisio = async (data: Omit<EvolucaoClinica, 'id' | 'clinica_id' | 'created_at'>) => {
+    if (!auth.profile?.clinica_id) throw new Error('Usuário não associado a uma clínica.');
+    const payload = { ...data, clinica_id: auth.profile.clinica_id };
+    const { data: created, error } = await supabase.from('evolucoes').insert(payload).select().single();
+    if (error) throw error;
+    if (created) dispatch({ type: 'ADD_EVOLUCAO', payload: created });
+  };
+
+  const addEvolucaoTO = async (data: Omit<EvolucaoTO, 'id' | 'clinica_id' | 'created_at'>) => {
+    if (!auth.profile?.clinica_id) throw new Error('Usuário não associado a uma clínica.');
+    const payload = { ...data, clinica_id: auth.profile.clinica_id };
+    const { data: created, error } = await supabase.from('evolucoes_to').insert(payload).select().single();
+    if (error) throw error;
+    if (created) dispatch({ type: 'ADD_EVOLUCAO_TO', payload: created });
+  };
+
   const getAvaliacaoByPaciente = (pacienteId: string) => {
     return state.avaliacoes
       .filter(a => a.paciente_id === pacienteId)
@@ -326,7 +375,7 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   return (
-    <ClinicContext.Provider value={{ state, addPaciente, updatePaciente, deletePaciente, getPacienteById, addProfissional, updateProfissional, deleteProfissional, addAtendimento, updateAtendimento, deleteAtendimento, getAvaliacaoByPaciente, getAvaliacaoTOByPaciente, getEvolucoesByPaciente, getEvolucoesTOByPaciente }}>
+    <ClinicContext.Provider value={{ state, addPaciente, updatePaciente, deletePaciente, getPacienteById, addProfissional, updateProfissional, deleteProfissional, addAtendimento, updateAtendimento, deleteAtendimento, getAvaliacaoByPaciente, getAvaliacaoTOByPaciente, getEvolucoesByPaciente, getEvolucoesTOByPaciente, addAvaliacaoFisio, addAvaliacaoTO, addEvolucaoFisio, addEvolucaoTO }}>
       {children}
     </ClinicContext.Provider>
   );
