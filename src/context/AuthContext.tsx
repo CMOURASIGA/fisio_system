@@ -169,21 +169,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      // noop
-    }
+    // Primeiro, desloga do Supabase. O evento onAuthStateChange cuidará de limpar o estado.
+    await supabase.auth.signOut();
+    
+    // Garante que qualquer armazenamento local seja limpo, tratando casos de borda.
     clearAuthStorage();
-    setProfile(null);
-    setUser(null);
-    setSession(null);
-    // Garantir redirect para login e limpeza de hash
-    try {
-      history.replaceState(null, '', window.location.origin + '/#/login');
-    } catch (e) {
-      window.location.href = '/#/login';
-    }
+
+    // Força um redirecionamento de página inteira para a rota de login.
+    // Isso garante que todo o estado da aplicação React seja reiniciado, evitando conflitos.
+    window.location.href = '/#/login';
   };
 
   return (
