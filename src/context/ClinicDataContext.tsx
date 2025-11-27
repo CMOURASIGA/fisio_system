@@ -147,6 +147,7 @@ const clinicReducer = (state: ClinicState, action: Action): ClinicState => {
 
 // Context
 interface ClinicContextType {
+  
   state: ClinicState;
   // Pacientes
   addPaciente: (paciente: Omit<Paciente, 'id'| 'created_at' | 'clinica_id'>) => Promise<void>;
@@ -175,6 +176,13 @@ const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
 
 export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const auth = useAuth(); // Get auth context
+  const resolveClinicaId = async () => {
+    if (auth.profile?.clinica_id) return auth.profile.clinica_id;
+    const { data, error } = await supabase.rpc('get_current_clinica_id');
+    if (error) throw new Error('Clinica nao encontrada para o usuario.');
+    if (!data) throw new Error('Clinica nao definida para o usuario.');
+    return data as string;
+  };
   const [state, dispatch] = useReducer(clinicReducer, {
     pacientes: [],
     profissionais: [],
@@ -233,8 +241,8 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // Paciente Functions
   const addPaciente = async (pacienteData: Omit<Paciente, 'id' | 'created_at' | 'clinica_id'>) => {
-    if (!auth.profile?.clinica_id) throw new Error("Usuário não associado a uma clínica.");
-    const dataToInsert = { ...pacienteData, clinica_id: auth.profile.clinica_id };
+    const clinicaId = await resolveClinicaId();
+    const dataToInsert = { ...pacienteData, clinica_id: clinicaId };
 
     const { data: newPaciente, error } = await supabase.from('pacientes').insert(dataToInsert).select().single();
     if (error) { console.error('Error adding paciente:', error.message); throw error; }
@@ -388,3 +396,4 @@ export const useClinicData = () => {
   }
   return context;
 };
+

@@ -29,12 +29,11 @@ const PacientesListPage: React.FC = () => {
       }
       setIsFormOpen(false);
       setEditingPaciente(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save paciente", error);
-      // Here you could show an error message to the user
+      alert(error?.message || 'Nao foi possivel salvar o paciente. Tente novamente.');
     }
   };
-
   const handleDelete = async (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este paciente?")) {
       try {
