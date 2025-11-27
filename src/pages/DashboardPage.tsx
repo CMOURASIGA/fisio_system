@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Users, Activity, ClipboardList, UserCog, Trophy, Clock3, Sparkles } from 'lucide-react';
+ï»¿import React, { useMemo, useState } from 'react';
+import { Users, Activity, ClipboardList, UserCog, Clock3, Sparkles } from 'lucide-react';
 import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import ProfissionalFormModal from '../components/Profissionais/ProfissionalFormModal';
@@ -78,17 +78,13 @@ const DashboardPage: React.FC = () => {
         <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.3),_transparent_50%)] pointer-events-none" />
         <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase text-teal-700 bg-white/70 px-3 py-1 rounded-full shadow-sm">
-              <Trophy className="h-4 w-4" /> Fase 1 – Experiência aprimorada
-            </p>
-            <h1 className="mt-3 text-3xl font-bold text-slate-900">Dashboard vivo e centrado no paciente</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Dashboard vivo e centrado no paciente</h1>
             <p className="mt-2 text-slate-600 max-w-2xl">
-              Acompanhe rapidamente o progresso dos pacientes, próximos compromissos e conquistas da equipe.
+              Acompanhe rapidamente o progresso dos pacientes, proximos compromissos e conquistas da equipe.
             </p>
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" onClick={() => setIsProfModalOpen(true)}>Novo Profissional</Button>
-            <Button onClick={() => setIsProfModalOpen(true)}>Adicionar Meta</Button>
           </div>
         </div>
       </div>
@@ -111,7 +107,7 @@ const DashboardPage: React.FC = () => {
         <StatCard
           title="Agendas Pendentes"
           value={agendasPendentes}
-          subtitle="Avaliações agendadas"
+          subtitle="Avaliacoes agendadas"
           icon={Activity}
           color="text-amber-600"
         />
@@ -131,7 +127,7 @@ const DashboardPage: React.FC = () => {
             <Sparkles className="h-4 w-4 text-teal-600" />
           </div>
           {patientProgress.length === 0 ? (
-            <p className="text-slate-500 text-sm">Nenhum atendimento concluído ainda.</p>
+            <p className="text-slate-500 text-sm">Nenhum atendimento concluido ainda.</p>
           ) : (
             <div className="space-y-3">
               {patientProgress.map((p) => (
@@ -146,7 +142,7 @@ const DashboardPage: React.FC = () => {
                       style={{ width: `${p.progresso}%` }}
                     />
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">{p.sessions} sessões registradas</p>
+                  <p className="text-xs text-slate-500 mt-1">{p.sessions} sessoes registradas</p>
                 </div>
               ))}
             </div>
@@ -158,7 +154,7 @@ const DashboardPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
               <Clock3 className="h-5 w-5 text-teal-600" /> Timeline do dia
             </h3>
-            <span className="text-xs text-slate-500">Próximos atendimentos</span>
+            <span className="text-xs text-slate-500">Proximos atendimentos</span>
           </div>
           {proximosAtendimentos.length === 0 ? (
             <p className="text-slate-500 text-sm">Nenhum atendimento agendado.</p>
@@ -171,11 +167,11 @@ const DashboardPage: React.FC = () => {
                   <li key={atendimento.id} className="py-3 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{paciente?.nome || 'Paciente'}</p>
-                      <p className="text-xs text-slate-500">{atendimento.tipo} · {profissional?.nome || 'Profissional'}</p>
+                      <p className="text-xs text-slate-500">{atendimento.tipo} - {profissional?.nome || 'Profissional'}</p>
                     </div>
                     <div className="text-right text-sm text-slate-600">
                       <p>{new Date(atendimento.dataHora).toLocaleDateString('pt-BR')}</p>
-                      <p className="text-xs text-teal-600 font-semibold">Missão do dia</p>
+                      <p className="text-xs text-teal-600 font-semibold">Missao do dia</p>
                     </div>
                   </li>
                 );
