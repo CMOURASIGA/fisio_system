@@ -46,9 +46,9 @@ export interface Paciente {
 }
 
 export enum AtendimentoTipo {
-  AVALIACAO = 'Avaliação',
-  SESSAO = 'Sessão de Fisioterapia',
-  REAVALIACAO = 'Reavaliação',
+  AVALIACAO = 'Avaliacao',
+  SESSAO = 'Sessao de Fisioterapia',
+  REAVALIACAO = 'Reavaliacao',
   ALTA = 'Alta',
   PILATES = 'Pilates',
   ACUPUNTURA = 'Acupuntura'

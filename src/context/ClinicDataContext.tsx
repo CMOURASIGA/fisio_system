@@ -289,8 +289,8 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // Atendimento Functions
   const addAtendimento = async (data: Omit<Atendimento, 'id' | 'created_at' | 'clinica_id'>) => {
-    if (!auth.profile?.clinica_id) throw new Error("Usuário não associado a uma clínica.");
-    const dataToInsert = mapAtendimentoToDb(data, auth.profile.clinica_id);
+    const clinicaId = await resolveClinicaId();
+    const dataToInsert = mapAtendimentoToDb(data, clinicaId);
     const { data: newAtendimento, error } = await supabase.from('atendimentos').insert(dataToInsert).select().single();
     if (error) { console.error('Error adding atendimento:', { message: error.message, details: error.details, hint: error.hint, code: error.code }); throw error; }
     if (newAtendimento) dispatch({ type: 'ADD_ATENDIMENTO', payload: mapAtendimentoFromDb(newAtendimento) });
@@ -302,7 +302,6 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode }> = ({ children
     if (error) { console.error('Error updating atendimento:', { message: error.message, details: error.details, hint: error.hint, code: error.code }); throw error; }
     if (updated) dispatch({ type: 'UPDATE_ATENDIMENTO', payload: mapAtendimentoFromDb(updated) });
   };
-
   const deleteAtendimento = async (id: string) => {
     const { error } = await supabase.from('atendimentos').delete().eq('id', id);
     if (error) { console.error('Error deleting atendimento:', { message: error.message, details: error.details, hint: error.hint, code: error.code }); throw error; }
