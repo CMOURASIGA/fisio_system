@@ -165,7 +165,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    const siteUrl = (import.meta as any)?.env?.VITE_SITE_URL || window.location.origin;
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: siteUrl } });
   };
 
   const signOut = async () => {
@@ -177,7 +178,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Força um redirecionamento de página inteira para a rota de login.
     // Isso garante que todo o estado da aplicação React seja reiniciado, evitando conflitos.
-    window.location.href = '/#/login';
+    const siteUrl = (import.meta as any)?.env?.VITE_SITE_URL || window.location.origin;
+    window.location.href = `${siteUrl}/#/login`;
   };
 
   return (
@@ -192,6 +194,7 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 };
+
 
 
 
