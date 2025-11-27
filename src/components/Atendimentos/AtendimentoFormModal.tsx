@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+ï»¿import React, { useEffect, useState } from 'react';
 import Modal from '../UI/Modal';
 import Input from '../UI/Input';
 import Select from '../UI/Select';
@@ -17,9 +17,17 @@ interface AtendimentoFormModalProps {
   defaultStatus?: AtendimentoStatus;
 }
 
-const steps = ['Dados básicos', 'Sinais vitais', 'SOAP'];
+const steps = ['Dados basicos', 'Sinais vitais', 'SOAP'];
 
-const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onClose, preSelectedPacienteId, initialData, defaultDate, defaultTime, defaultStatus }) => {
+const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({
+  isOpen,
+  onClose,
+  preSelectedPacienteId,
+  initialData,
+  defaultDate,
+  defaultTime,
+  defaultStatus,
+}) => {
   const { state, addAtendimento, updateAtendimento } = useClinicData();
   const [pacienteId, setPacienteId] = useState(preSelectedPacienteId || '');
   const [profissionalId, setProfissionalId] = useState('');
@@ -27,15 +35,25 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
   const [local, setLocal] = useState(LOCAIS_ATENDIMENTO[0]);
   const [status, setStatus] = useState<AtendimentoStatus>(defaultStatus || AtendimentoStatus.REALIZADO);
   const [data, setData] = useState(defaultDate || new Date().toISOString().split('T')[0]);
-  const [hora, setHora] = useState(defaultTime || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+  const [hora, setHora] = useState(
+    defaultTime || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  );
   const [currentStep, setCurrentStep] = useState(0);
-  
+
   const [sinaisVitais, setSinaisVitais] = useState({
-    spo2: '', fc: '', fr: '', paSistolica: '', paDiastolica: '', temp: ''
+    spo2: '',
+    fc: '',
+    fr: '',
+    paSistolica: '',
+    paDiastolica: '',
+    temp: '',
   });
 
   const [soap, setSoap] = useState({
-    subjetivo: '', objetivo: '', avaliacao: '', plano: ''
+    subjetivo: '',
+    objetivo: '',
+    avaliacao: '',
+    plano: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -104,7 +122,7 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
           paDiastolica: sinaisVitais.paDiastolica ? Number(sinaisVitais.paDiastolica) : undefined,
           temp: sinaisVitais.temp ? Number(sinaisVitais.temp) : undefined,
         },
-        soap
+        soap,
       };
 
       if (initialData) {
@@ -114,8 +132,8 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
       }
       onClose();
     } catch (error) {
-      console.error("Failed to add atendimento:", error);
-      alert("Não foi possível salvar o atendimento. Verifique os dados e tente novamente.");
+      console.error('Failed to add atendimento:', error);
+      alert('Nao foi possivel salvar o atendimento. Verifique os dados e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -132,12 +150,16 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
   const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Editar Atendimento" : "Novo Atendimento"} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Editar Atendimento' : 'Novo Atendimento'} size="xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex items-center gap-3">
           {steps.map((step, idx) => (
             <div key={step} className="flex-1 flex items-center gap-2">
-              <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-semibold ${idx <= currentStep ? 'bg-gradient-to-br from-teal-500 to-sky-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+              <div
+                className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-semibold ${
+                  idx <= currentStep ? 'bg-gradient-to-br from-teal-500 to-sky-500 text-white' : 'bg-slate-200 text-slate-500'
+                }`}
+              >
                 {idx + 1}
               </div>
               <div>
@@ -155,7 +177,7 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
               label="Paciente *"
               value={pacienteId}
               onChange={(e) => setPacienteId(e.target.value)}
-              options={state.pacientes.map(p => ({ label: p.nome, value: p.id }))}
+              options={state.pacientes.map((p) => ({ label: p.nome, value: p.id }))}
               placeholder="Selecione..."
               disabled={!!preSelectedPacienteId}
               required
@@ -164,7 +186,7 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
               label="Profissional *"
               value={profissionalId}
               onChange={(e) => setProfissionalId(e.target.value)}
-              options={state.profissionais.map(p => ({ label: p.nome, value: p.id }))}
+              options={state.profissionais.map((p) => ({ label: p.nome, value: p.id }))}
               placeholder="Selecione..."
               required
             />
@@ -173,14 +195,20 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
               <Input type="time" label="Hora *" value={hora} onChange={(e) => setHora(e.target.value)} required />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Select label="Tipo *" value={tipo} onChange={(e) => setTipo(e.target.value as AtendimentoTipo)} options={OPCOES_TIPO_ATENDIMENTO.map(t => ({ label: t, value: t }))} required />
-              <Select label="Local" value={local} onChange={(e) => setLocal(e.target.value)} options={LOCAIS_ATENDIMENTO.map(l => ({ label: l, value: l }))} />
+              <Select
+                label="Tipo *"
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value as AtendimentoTipo)}
+                options={OPCOES_TIPO_ATENDIMENTO.map((t) => ({ label: t, value: t }))}
+                required
+              />
+              <Select label="Local" value={local} onChange={(e) => setLocal(e.target.value)} options={LOCAIS_ATENDIMENTO.map((l) => ({ label: l, value: l }))} />
             </div>
             <Select
               label="Status"
               value={status}
               onChange={(e) => setStatus(e.target.value as AtendimentoStatus)}
-              options={Object.values(AtendimentoStatus).map(s => ({ label: s, value: s }))}
+              options={Object.values(AtendimentoStatus).map((s) => ({ label: s, value: s }))}
             />
           </div>
         )}
@@ -201,34 +229,68 @@ const AtendimentoFormModal: React.FC<AtendimentoFormModalProps> = ({ isOpen, onC
 
         {currentStep === 2 && (
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Evolução (SOAP)</h4>
+            <h4 className="font-medium text-gray-900 mb-3">Evolucao (SOAP)</h4>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase">Subjetivo (S)</label>
-                <textarea name="subjetivo" value={soap.subjetivo} onChange={handleSoapChange} placeholder="O que o paciente relata?" className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" rows={2} />
+                <textarea
+                  name="subjetivo"
+                  value={soap.subjetivo}
+                  onChange={handleSoapChange}
+                  placeholder="O que o paciente relata?"
+                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  rows={2}
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase">Objetivo (O)</label>
-                <textarea name="objetivo" value={soap.objetivo} onChange={handleSoapChange} placeholder="O que você observou?" className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" rows={2} />
+                <textarea
+                  name="objetivo"
+                  value={soap.objetivo}
+                  onChange={handleSoapChange}
+                  placeholder="O que voce observou?"
+                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  rows={2}
+                />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase">Avaliação (A)</label>
-                <textarea name="avaliacao" value={soap.avaliacao} onChange={handleSoapChange} placeholder="Interpretação clínica" className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" rows={2} />
+                <label className="block text-xs font-medium text-gray-500 uppercase">Avaliacao (A)</label>
+                <textarea
+                  name="avaliacao"
+                  value={soap.avaliacao}
+                  onChange={handleSoapChange}
+                  placeholder="Interpretacao clinica"
+                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  rows={2}
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase">Plano (P)</label>
-                <textarea name="plano" value={soap.plano} onChange={handleSoapChange} placeholder="Condutas e tratamento" className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" rows={2} />
+                <textarea
+                  name="plano"
+                  value={soap.plano}
+                  onChange={handleSoapChange}
+                  placeholder="Condutas e tratamento"
+                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  rows={2}
+                />
               </div>
             </div>
           </div>
         )}
 
         <div className="flex justify-between items-center pt-4 border-t">
-          <Button type="button" variant="outline" onClick={() => currentStep > 0 ? setCurrentStep((s) => s - 1) : onClose()}>
+          <Button type="button" variant="outline" onClick={() => (currentStep > 0 ? setCurrentStep((s) => s - 1) : onClose())}>
             {currentStep === 0 ? 'Cancelar' : 'Voltar'}
           </Button>
           <Button type="submit" variant="primary" isLoading={loading}>
-            {isLastStep ? (initialData ? 'Salvar alterações' : status === AtendimentoStatus.AGENDADO ? 'Salvar agendamento' : 'Salvar atendimento') : 'Próximo'}
+            {isLastStep
+              ? initialData
+                ? 'Salvar alteracoes'
+                : status === AtendimentoStatus.AGENDADO
+                ? 'Salvar agendamento'
+                : 'Salvar atendimento'
+              : 'Proximo'}
           </Button>
         </div>
       </form>
