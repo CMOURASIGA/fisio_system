@@ -30,6 +30,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const clearAuthStorage = () => {
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+      sessionStorage.clear();
+    } catch (err) {
+      console.warn('Nao foi possivel limpar cache auth', err);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -54,6 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data: sessionData, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Erro ao obter sessão:', error.message);
+          clearAuthStorage();
         }
 
         if (!isMounted) return;
@@ -64,9 +76,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (session?.user) {
           await fetchOrCreateProfile(session.user);
+        } else {
+          clearAuthStorage();
         }
       } finally {
-        // Garante que loading é false mesmo em caso de erro
+        // Garante que loading volte a false mesmo em caso de erro
         setLoading(false);
       }
     };
@@ -88,7 +102,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(newSession ?? null);
       setUser(newSession?.user ?? null);
       if (newSession?.user) await fetchOrCreateProfile(newSession.user);
-      if (!newSession) setProfile(null);
+      if (!newSession) {
+        setProfile(null);
+        clearAuthStorage();
+      }
     });
 
     return () => {
@@ -157,6 +174,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       // noop
     }
+    clearAuthStorage();
     setProfile(null);
     setUser(null);
     setSession(null);
@@ -180,3 +198,7 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 };
+
+
+
+
