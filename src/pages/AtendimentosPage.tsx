@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import AtendimentoFormModal from '../components/Atendimentos/AtendimentoFormModal';
@@ -75,25 +75,25 @@ const AtendimentosPage: React.FC = () => {
     <div className="space-y-6">
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Atendimentos</h1>
-            <div className="flex flex-wrap gap-2 justify-end">
-              <Button onClick={handleOpenNew}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 w-full lg:w-auto">
+              <Button className="w-full" onClick={handleOpenNew}>
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Atendimento
               </Button>
-              <Button variant="secondary" onClick={() => setOpenAvalFisio(true)}>
+              <Button className="w-full" variant="secondary" onClick={() => setOpenAvalFisio(true)}>
                 <ClipboardPlus className="h-4 w-4 mr-2" />
                 Avaliacao Fisio
               </Button>
-              <Button variant="secondary" onClick={() => setOpenAvalTO(true)}>
+              <Button className="w-full" variant="secondary" onClick={() => setOpenAvalTO(true)}>
                 <ClipboardPlus className="h-4 w-4 mr-2" />
                 Avaliacao TO
               </Button>
-              <Button variant="outline" onClick={() => setOpenEvoFisio(true)}>
+              <Button className="w-full" variant="outline" onClick={() => setOpenEvoFisio(true)}>
                 Evolucao Fisio
               </Button>
-              <Button variant="outline" onClick={() => setOpenEvoTO(true)}>
+              <Button className="w-full" variant="outline" onClick={() => setOpenEvoTO(true)}>
                 Evolucao TO
               </Button>
             </div>
@@ -235,3 +235,4 @@ const AtendimentosPage: React.FC = () => {
 };
 
 export default AtendimentosPage;
+
