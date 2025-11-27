@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import AtendimentoFormModal from '../components/Atendimentos/AtendimentoFormModal';
 import { formatDateTime } from '../utils/dateHelpers';
-import { Plus, Edit, Trash2, ClipboardPlus } from 'lucide-react';
+import { Plus, Edit, Trash2, ClipboardPlus, UserCheck2, Clock3 } from 'lucide-react';
 import { Atendimento } from '../types';
 import AvaliacaoModal from '../components/Prontuario/AvaliacaoModal';
 import EvolucaoModal from '../components/Prontuario/EvolucaoModal';
@@ -73,60 +73,71 @@ const AtendimentosPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-100 via-sky-100 to-white border border-emerald-50 p-6">
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-200 blur-3xl opacity-60 pointer-events-none" />
+        <div className="absolute -left-16 bottom-0 h-32 w-32 rounded-full bg-sky-200 blur-3xl opacity-60 pointer-events-none" />
+        <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase text-emerald-700 bg-white/70 px-3 py-1 rounded-full shadow-sm">Atendimentos</p>
+            <h1 className="text-3xl font-bold text-slate-900">Central de atendimentos</h1>
+            <p className="text-slate-600 text-sm">Agende, acompanhe e evolua pacientes com rapidez.</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 w-full lg:w-auto">
+            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500 text-white" onClick={handleOpenNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Atendimento
+            </Button>
+            <Button className="w-full" variant="secondary" onClick={() => setOpenAvalFisio(true)}>
+              <ClipboardPlus className="h-4 w-4 mr-2" />
+              Avaliacao Fisio
+            </Button>
+            <Button className="w-full" variant="secondary" onClick={() => setOpenAvalTO(true)}>
+              <ClipboardPlus className="h-4 w-4 mr-2" />
+              Avaliacao TO
+            </Button>
+            <Button className="w-full" variant="outline" onClick={() => setOpenEvoFisio(true)}>
+              Evolucao Fisio
+            </Button>
+            <Button className="w-full" variant="outline" onClick={() => setOpenEvoTO(true)}>
+              Evolucao TO
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Atendimentos</h1>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 w-full lg:w-auto">
-              <Button className="w-full" onClick={handleOpenNew}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Atendimento
-              </Button>
-              <Button className="w-full" variant="secondary" onClick={() => setOpenAvalFisio(true)}>
-                <ClipboardPlus className="h-4 w-4 mr-2" />
-                Avaliacao Fisio
-              </Button>
-              <Button className="w-full" variant="secondary" onClick={() => setOpenAvalTO(true)}>
-                <ClipboardPlus className="h-4 w-4 mr-2" />
-                Avaliacao TO
-              </Button>
-              <Button className="w-full" variant="outline" onClick={() => setOpenEvoFisio(true)}>
-                Evolucao Fisio
-              </Button>
-              <Button className="w-full" variant="outline" onClick={() => setOpenEvoTO(true)}>
-                Evolucao TO
-              </Button>
-            </div>
-          </div>
-
           <div className="bg-white shadow overflow-hidden rounded-md">
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                <span className="text-sm text-gray-500">Mostrando ultimos registros</span>
-               <div />
+               <div className="inline-flex items-center gap-2 text-xs text-slate-500">
+                 <Clock3 className="h-4 w-4" />
+                 Atualizado em tempo real
+               </div>
             </div>
             <ul className="divide-y divide-gray-200">
               {sortedAtendimentos.map((atendimento) => (
                 <li key={atendimento.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-primary-600 truncate">
+                      <p className="text-sm font-semibold text-primary-600 truncate">
                         {getPacienteName(atendimento.pacienteId)}
                       </p>
                       <p className="ml-1 flex-shrink-0 font-normal text-gray-500">
                         com {getProfissionalName(atendimento.profissionalId)}
                       </p>
                     </div>
-                    <div className="ml-2 flex-shrink-0 flex">
-                      <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    <div className="ml-2 flex-shrink-0 flex items-center gap-2">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         atendimento.status === 'Realizado' ? 'bg-green-100 text-green-800' : 
                         atendimento.status === 'Agendado' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {atendimento.status}
-                      </p>
-                      <button className="ml-2 text-gray-400 hover:text-blue-600" onClick={() => handleEdit(atendimento)} title="Editar atendimento">
+                      </span>
+                      <button className="text-gray-400 hover:text-blue-600" onClick={() => handleEdit(atendimento)} title="Editar atendimento">
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="ml-2 text-gray-400 hover:text-red-600" onClick={() => handleDelete(atendimento.id)} title="Excluir atendimento">
+                      <button className="text-gray-400 hover:text-red-600" onClick={() => handleDelete(atendimento.id)} title="Excluir atendimento">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -138,9 +149,7 @@ const AtendimentosPage: React.FC = () => {
                       </p>
                     </div>
                     <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                      <p>
-                        {formatDateTime(atendimento.dataHora)}
-                      </p>
+                      <p>{formatDateTime(atendimento.dataHora)}</p>
                     </div>
                   </div>
                 </li>
@@ -153,6 +162,8 @@ const AtendimentosPage: React.FC = () => {
           <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-slate-900">Progresso de pacientes</h3>
+              <span className="inline-flex items-center text-xs text-slate-500 gap-1">
+                <UserCheck2 className="h-4 w-4 text-emerald-600" /> Evolucao</span>
             </div>
             <div className="mb-3">
               <label className="block text-sm font-medium text-slate-700 mb-1">Filtrar paciente</label>
@@ -235,4 +246,3 @@ const AtendimentosPage: React.FC = () => {
 };
 
 export default AtendimentosPage;
-
