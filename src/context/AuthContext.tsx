@@ -29,6 +29,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const getSiteUrl = () => (import.meta as any)?.env?.VITE_SITE_URL || window.location.origin;
+
 
   const clearAuthStorage = () => {
     try {
@@ -114,6 +116,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  // Se não houver sessão, força limpeza e volta para login (evita depender de script manual)
+  useEffect(() => {
+    if (loading) return;
+    if (session) return;
+    clearAuthStorage();
+    const siteUrl = getSiteUrl();
+    if (!window.location.href.includes('/#/login')) {
+      window.location.href = `${siteUrl}/#/login`;
+    }
+  }, [loading, session]);
+
+
   const fetchOrCreateProfile = async (user: User) => {
     try {
       const { data, error } = await supabase.from('perfis').select('*').eq('user_id', user.id).maybeSingle();
@@ -194,6 +208,7 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 };
+
 
 
 
