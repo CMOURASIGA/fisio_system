@@ -78,34 +78,37 @@ const EvolucaoModal: React.FC<EvolucaoModalProps> = ({ isOpen, onClose, paciente
     }
   };
 
+  const maybe = (v?: string) => (v && v.trim() !== '' ? v : undefined);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pacienteId) return;
     setLoading(true);
     try {
-      const base = {
+      const base: any = {
         paciente_id: pacienteId,
-        profissional_id: profissionalId || undefined,
-        data_evolucao: form.data_evolucao,
-        hora_evolucao: form.hora_evolucao,
+        profissional_id: maybe(profissionalId),
         numero_sessao: form.numero_sessao ? Number(form.numero_sessao) : undefined,
-        procedimentos: form.procedimentos,
-        intercorrencias: form.intercorrencias,
-        evolucao_estado_saude: form.evolucao_estado_saude,
+        procedimentos: maybe(form.procedimentos),
+        intercorrencias: maybe(form.intercorrencias),
+        evolucao_estado_saude: maybe(form.evolucao_estado_saude),
       };
+      if (maybe(form.data_evolucao)) base.data_evolucao = form.data_evolucao;
+      if (maybe(form.hora_evolucao)) base.hora_evolucao = form.hora_evolucao;
+
       if (tipo === 'fisio') {
         await onSave({
           ...base,
-          nome_fisioterapeuta: form.nome_fisioterapeuta,
-          crefito_fisioterapeuta: form.crefito_fisioterapeuta,
-          nome_academico_estagiario: form.nome_academico_estagiario,
+          nome_fisioterapeuta: maybe(form.nome_fisioterapeuta),
+          crefito_fisioterapeuta: maybe(form.crefito_fisioterapeuta),
+          nome_academico_estagiario: maybe(form.nome_academico_estagiario),
         });
       } else {
         await onSave({
           ...base,
-          nome_terapeuta_ocupacional: form.nome_terapeuta_ocupacional,
-          crefito_terapeuta_ocupacional: form.crefito_terapeuta_ocupacional,
-          nome_academico_estagiario_to: form.nome_academico_estagiario_to,
+          nome_terapeuta_ocupacional: maybe(form.nome_terapeuta_ocupacional),
+          crefito_terapeuta_ocupacional: maybe(form.crefito_terapeuta_ocupacional),
+          nome_academico_estagiario_to: maybe(form.nome_academico_estagiario_to),
         });
       }
       onClose();
@@ -139,29 +142,29 @@ const EvolucaoModal: React.FC<EvolucaoModalProps> = ({ isOpen, onClose, paciente
             options={profissionais.map(p => ({ label: p.nome, value: p.id }))}
             placeholder="Selecione..."
           />
-          <Input label="Data" name="data_evolucao" type="date" value={form.data_evolucao || ''} onChange={handleChange} />
-          <Input label="Hora" name="hora_evolucao" type="time" value={form.hora_evolucao || ''} onChange={handleChange} />
-          <Input label="Numero da sessao" name="numero_sessao" type="number" value={form.numero_sessao || ''} onChange={handleChange} />
+          <Input label="Data" name="data_evolucao" type="date" value={form.data_evolucao} onChange={handleChange} />
+          <Input label="Hora" name="hora_evolucao" type="time" value={form.hora_evolucao} onChange={handleChange} />
+          <Input label="Numero da sessao" name="numero_sessao" type="number" value={form.numero_sessao} onChange={handleChange} />
         </div>
 
         <label className="block text-sm font-medium text-gray-700">Procedimentos</label>
-        <textarea name="procedimentos" value={form.procedimentos || ''} onChange={handleChange} className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500" rows={2} />
+        <textarea name="procedimentos" value={form.procedimentos} onChange={handleChange} className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500" rows={2} />
         <label className="block text-sm font-medium text-gray-700">Intercorrencias</label>
-        <textarea name="intercorrencias" value={form.intercorrencias || ''} onChange={handleChange} className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500" rows={2} />
+        <textarea name="intercorrencias" value={form.intercorrencias} onChange={handleChange} className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500" rows={2} />
         <label className="block text-sm font-medium text-gray-700">Evolucao do estado de saude</label>
-        <textarea name="evolucao_estado_saude" value={form.evolucao_estado_saude || ''} onChange={handleChange} className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500" rows={2} />
+        <textarea name="evolucao_estado_saude" value={form.evolucao_estado_saude} onChange={handleChange} className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500" rows={2} />
 
         {tipo === 'fisio' ? (
           <>
-            <Input label="Nome fisioterapeuta" name="nome_fisioterapeuta" value={form.nome_fisioterapeuta || ''} onChange={handleChange} />
-            <Input label="CREFITO" name="crefito_fisioterapeuta" value={form.crefito_fisioterapeuta || ''} onChange={handleChange} />
-            <Input label="Academico/estagiario" name="nome_academico_estagiario" value={form.nome_academico_estagiario || ''} onChange={handleChange} />
+            <Input label="Nome fisioterapeuta" name="nome_fisioterapeuta" value={form.nome_fisioterapeuta} onChange={handleChange} />
+            <Input label="CREFITO" name="crefito_fisioterapeuta" value={form.crefito_fisioterapeuta} onChange={handleChange} />
+            <Input label="Academico/estagiario" name="nome_academico_estagiario" value={form.nome_academico_estagiario} onChange={handleChange} />
           </>
         ) : (
           <>
-            <Input label="Nome terapeuta ocupacional" name="nome_terapeuta_ocupacional" value={form.nome_terapeuta_ocupacional || ''} onChange={handleChange} />
-            <Input label="CREFITO" name="crefito_terapeuta_ocupacional" value={form.crefito_terapeuta_ocupacional || ''} onChange={handleChange} />
-            <Input label="Academico/estagiario (TO)" name="nome_academico_estagiario_to" value={form.nome_academico_estagiario_to || ''} onChange={handleChange} />
+            <Input label="Nome terapeuta ocupacional" name="nome_terapeuta_ocupacional" value={form.nome_terapeuta_ocupacional} onChange={handleChange} />
+            <Input label="CREFITO" name="crefito_terapeuta_ocupacional" value={form.crefito_terapeuta_ocupacional} onChange={handleChange} />
+            <Input label="Academico/estagiario (TO)" name="nome_academico_estagiario_to" value={form.nome_academico_estagiario_to} onChange={handleChange} />
           </>
         )}
 
