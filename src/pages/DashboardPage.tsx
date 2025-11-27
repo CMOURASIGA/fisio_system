@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Users, Activity, ClipboardList, UserCog } from 'lucide-react';
+import { Users, Activity, ClipboardList, UserCog, Trophy, Clock3, Sparkles } from 'lucide-react';
 import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import ProfissionalFormModal from '../components/Profissionais/ProfissionalFormModal';
@@ -24,7 +24,6 @@ const DashboardPage: React.FC = () => {
   }, [state.atendimentos]);
 
   const agendasPendentes = useMemo(() => {
-    // Contabiliza atendimentos agendados (qualquer tipo) ainda nÃ£o realizados
     return state.atendimentos.filter((a) => a.status === AtendimentoStatus.AGENDADO).length;
   }, [state.atendimentos]);
 
@@ -34,41 +33,63 @@ const DashboardPage: React.FC = () => {
   );
 
   const StatCard = ({ title, value, subtitle, icon: Icon, color }: any) => (
-    <div className="bg-white overflow-hidden rounded-lg shadow hover:shadow-md transition-shadow">
-      <div className="p-5">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <Icon className={`h-10 w-10 ${color}`} />
-          </div>
-          <div className="ml-5 w-0 flex-1">
-            <dl>
-              <dt className="truncate text-sm font-medium text-gray-500">{title}</dt>
-              <dd>
-                <div className="text-2xl font-bold text-gray-900">{value}</div>
-              </dd>
-            </dl>
-          </div>
+    <div className="bg-white/80 backdrop-blur-sm border border-teal-50 overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all">
+      <div className="p-5 flex items-center gap-4">
+        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-teal-100 to-sky-100 flex items-center justify-center">
+          <Icon className={`h-7 w-7 ${color}`} />
         </div>
-      </div>
-      <div className="bg-gray-50 px-5 py-3">
-        <div className="text-sm">
-          <span className="text-green-700 font-medium">{subtitle}</span>
+        <div className="flex-1">
+          <p className="text-xs uppercase tracking-wide text-slate-500">{title}</p>
+          <p className="text-2xl font-semibold text-slate-900">{value}</p>
+          <p className="text-xs text-teal-700 mt-1 flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            {subtitle}
+          </p>
         </div>
       </div>
     </div>
   );
 
+  const patientProgress = useMemo(() => {
+    const realizadosPorPaciente = state.atendimentos.reduce<Record<string, number>>((acc, a) => {
+      if (a.status === AtendimentoStatus.REALIZADO) acc[a.pacienteId] = (acc[a.pacienteId] || 0) + 1;
+      return acc;
+    }, {});
+    return state.pacientes
+      .map((p) => ({
+        ...p,
+        progresso: Math.min(100, (realizadosPorPaciente[p.id] || 0) * 20),
+        sessions: realizadosPorPaciente[p.id] || 0,
+      }))
+      .sort((a, b) => b.progresso - a.progresso)
+      .slice(0, 3);
+  }, [state.pacientes, state.atendimentos]);
+
+  const proximosAtendimentos = useMemo(() => {
+    return state.atendimentos
+      .filter((a) => a.status === AtendimentoStatus.AGENDADO)
+      .sort((a, b) => new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime())
+      .slice(0, 5);
+  }, [state.atendimentos]);
+
   return (
     <div className="space-y-6">
-      <div className="md:flex md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-            Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">Visao geral do sistema de fisioterapia.</p>
-        </div>
-        <div className="mt-4 flex md:ml-4 md:mt-0">
-          <Button onClick={() => setIsProfModalOpen(true)}>Cadastrar Profissional</Button>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-100 via-sky-100 to-white border border-teal-50 p-6">
+        <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.3),_transparent_50%)] pointer-events-none" />
+        <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase text-teal-700 bg-white/70 px-3 py-1 rounded-full shadow-sm">
+              <Trophy className="h-4 w-4" /> Fase 1 – Experiência aprimorada
+            </p>
+            <h1 className="mt-3 text-3xl font-bold text-slate-900">Dashboard vivo e centrado no paciente</h1>
+            <p className="mt-2 text-slate-600 max-w-2xl">
+              Acompanhe rapidamente o progresso dos pacientes, próximos compromissos e conquistas da equipe.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsProfModalOpen(true)}>Novo Profissional</Button>
+            <Button onClick={() => setIsProfModalOpen(true)}>Adicionar Meta</Button>
+          </div>
         </div>
       </div>
 
@@ -78,49 +99,110 @@ const DashboardPage: React.FC = () => {
           value={activePatients}
           subtitle='Status "Ativo" na base'
           icon={Users}
-          color="text-blue-500"
+          color="text-teal-700"
         />
         <StatCard
           title="Atendimentos Hoje"
           value={appointmentsToday}
           subtitle="Agendados/realizados no dia"
           icon={ClipboardList}
-          color="text-green-500"
+          color="text-sky-700"
         />
         <StatCard
           title="Agendas Pendentes"
           value={agendasPendentes}
-          subtitle="Avaliacoes/agendamentos com status Agendado"
+          subtitle="Avaliações agendadas"
           icon={Activity}
-          color="text-orange-500"
+          color="text-amber-600"
         />
         <StatCard
           title="Profissionais"
           value={state.profissionais.length}
           subtitle="Total cadastrados"
           icon={UserCog}
-          color="text-purple-500"
+          color="text-indigo-700"
         />
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Atendimentos Recentes</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="bg-white/80 rounded-xl border border-slate-100 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-slate-900">Progresso de pacientes</h3>
+            <Sparkles className="h-4 w-4 text-teal-600" />
+          </div>
+          {patientProgress.length === 0 ? (
+            <p className="text-slate-500 text-sm">Nenhum atendimento concluído ainda.</p>
+          ) : (
+            <div className="space-y-3">
+              {patientProgress.map((p) => (
+                <div key={p.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50">
+                  <div className="flex justify-between text-sm font-medium text-slate-800">
+                    <span>{p.nome}</span>
+                    <span>{p.progresso}%</span>
+                  </div>
+                  <div className="mt-2 h-2 bg-white rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-teal-500 to-sky-500 transition-all"
+                      style={{ width: `${p.progresso}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">{p.sessions} sessões registradas</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white/80 rounded-xl border border-slate-100 shadow-sm p-5 lg:col-span-2">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Clock3 className="h-5 w-5 text-teal-600" /> Timeline do dia
+            </h3>
+            <span className="text-xs text-slate-500">Próximos atendimentos</span>
+          </div>
+          {proximosAtendimentos.length === 0 ? (
+            <p className="text-slate-500 text-sm">Nenhum atendimento agendado.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {proximosAtendimentos.map((atendimento) => {
+                const paciente = state.pacientes.find((p) => p.id === atendimento.pacienteId);
+                const profissional = state.profissionais.find((p) => p.id === atendimento.profissionalId);
+                return (
+                  <li key={atendimento.id} className="py-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{paciente?.nome || 'Paciente'}</p>
+                      <p className="text-xs text-slate-500">{atendimento.tipo} · {profissional?.nome || 'Profissional'}</p>
+                    </div>
+                    <div className="text-right text-sm text-slate-600">
+                      <p>{new Date(atendimento.dataHora).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-xs text-teal-600 font-semibold">Missão do dia</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white/80 shadow-sm border border-slate-100 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Atendimentos Recentes</h3>
         {sortedAtendimentos.length === 0 ? (
-          <p className="text-gray-500">Nenhum atendimento registrado.</p>
+          <p className="text-slate-500">Nenhum atendimento registrado.</p>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-slate-100">
             {sortedAtendimentos.slice(0, 5).map((atendimento) => {
               const paciente = state.pacientes.find((p) => p.id === atendimento.pacienteId);
               const profissional = state.profissionais.find((p) => p.id === atendimento.profissionalId);
               return (
                 <li key={atendimento.id} className="py-4 flex justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{paciente?.nome || 'Paciente desconhecido'}</p>
-                    <p className="text-sm text-gray-500">{atendimento.tipo}</p>
-                    <p className="text-xs text-gray-400">Profissional: {profissional?.nome || '-'}</p>
+                    <p className="text-sm font-semibold text-slate-900">{paciente?.nome || 'Paciente desconhecido'}</p>
+                    <p className="text-sm text-slate-500">{atendimento.tipo}</p>
+                    <p className="text-xs text-slate-400">Profissional: {profissional?.nome || '-'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500">{new Date(atendimento.dataHora).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-sm text-slate-500">{new Date(atendimento.dataHora).toLocaleDateString('pt-BR')}</p>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         atendimento.status === AtendimentoStatus.REALIZADO
