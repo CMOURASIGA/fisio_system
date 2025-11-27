@@ -74,18 +74,23 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-100 via-sky-100 to-white border border-teal-50 p-6">
-        <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.3),_transparent_50%)] pointer-events-none" />
-        <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div className="relative overflow-hidden flex-1 rounded-2xl bg-gradient-to-br from-teal-100 via-sky-100 to-white border border-teal-50 p-6">
+          <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.3),_transparent_50%)] pointer-events-none" />
+          <div className="relative flex flex-col gap-2">
             <h1 className="text-3xl font-bold text-slate-900">Dashboard vivo e centrado no paciente</h1>
-            <p className="mt-2 text-slate-600 max-w-2xl">
+            <p className="text-slate-600 max-w-2xl">
               Acompanhe rapidamente o progresso dos pacientes, proximos compromissos e conquistas da equipe.
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setIsProfModalOpen(true)}>Novo Profissional</Button>
-          </div>
+        </div>
+        <div className="flex-shrink-0">
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500 text-white shadow px-5 py-2"
+            onClick={() => setIsProfModalOpen(true)}
+          >
+            Novo Profissional
+          </Button>
         </div>
       </div>
 
