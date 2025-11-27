@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useClinicData } from '../context/ClinicDataContext';
 import Button from '../components/UI/Button';
 import AtendimentoFormModal from '../components/Atendimentos/AtendimentoFormModal';
@@ -9,19 +9,47 @@ import AvaliacaoModal from '../components/Prontuario/AvaliacaoModal';
 import EvolucaoModal from '../components/Prontuario/EvolucaoModal';
 
 const AtendimentosPage: React.FC = () => {
-  const { state, deleteAtendimento } = useClinicData();
+  const { state, deleteAtendimento, addAvaliacaoFisio, addAvaliacaoTO, addEvolucaoFisio, addEvolucaoTO } = useClinicData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAtendimento, setEditingAtendimento] = useState<Atendimento | null>(null);
   const [openAvalFisio, setOpenAvalFisio] = useState(false);
   const [openAvalTO, setOpenAvalTO] = useState(false);
   const [openEvoFisio, setOpenEvoFisio] = useState(false);
   const [openEvoTO, setOpenEvoTO] = useState(false);
-  const { addAvaliacaoFisio, addAvaliacaoTO, addEvolucaoFisio, addEvolucaoTO } = useClinicData();
+  const [pacienteFiltroProgresso, setPacienteFiltroProgresso] = useState<string>('all');
 
   const getPacienteName = (id: string) => state.pacientes.find(p => p.id === id)?.nome || 'Desconhecido';
   const getProfissionalName = (id: string) => state.profissionais.find(p => p.id === id)?.nome || 'Desconhecido';
 
-  const sortedAtendimentos = [...state.atendimentos].sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
+  const sortedAtendimentos = useMemo(() =>
+    [...state.atendimentos].sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()),
+    [state.atendimentos]
+  );
+
+  const progressoPacientes = useMemo(() => {
+    const realizadosPorPaciente = state.atendimentos.reduce<Record<string, number>>((acc, a) => {
+      if (a.status === 'Realizado') acc[a.pacienteId] = (acc[a.pacienteId] || 0) + 1;
+      return acc;
+    }, {});
+    const ultimoAtendimentoPorPaciente = state.atendimentos.reduce<Record<string, number>>((acc, a) => {
+      const ts = new Date(a.dataHora).getTime();
+      acc[a.pacienteId] = Math.max(acc[a.pacienteId] || 0, ts);
+      return acc;
+    }, {});
+
+    const lista = state.pacientes.map((p) => ({
+      ...p,
+      progresso: Math.min(100, (realizadosPorPaciente[p.id] || 0) * 20),
+      sessions: realizadosPorPaciente[p.id] || 0,
+      ultimo: ultimoAtendimentoPorPaciente[p.id] || 0,
+    }));
+
+    const filtrada = pacienteFiltroProgresso === 'all'
+      ? lista
+      : lista.filter((p) => p.id === pacienteFiltroProgresso);
+
+    return filtrada.sort((a, b) => b.ultimo - a.ultimo);
+  }, [state.pacientes, state.atendimentos, pacienteFiltroProgresso]);
 
   const handleOpenNew = () => {
     setEditingAtendimento(null);
@@ -45,77 +73,123 @@ const AtendimentosPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Atendimentos</h1>
-        <div className="flex space-x-2">
-          <Button onClick={handleOpenNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Atendimento
-          </Button>
-          <Button variant="secondary" onClick={() => setOpenAvalFisio(true)}>
-            <ClipboardPlus className="h-4 w-4 mr-2" />
-            Avaliação Fisio
-          </Button>
-          <Button variant="secondary" onClick={() => setOpenAvalTO(true)}>
-            <ClipboardPlus className="h-4 w-4 mr-2" />
-            Avaliação TO
-          </Button>
-          <Button variant="outline" onClick={() => setOpenEvoFisio(true)}>
-            Evolução Fisio
-          </Button>
-          <Button variant="outline" onClick={() => setOpenEvoTO(true)}>
-            Evolução TO
-          </Button>
-        </div>
-      </div>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900">Atendimentos</h1>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button onClick={handleOpenNew}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Atendimento
+              </Button>
+              <Button variant="secondary" onClick={() => setOpenAvalFisio(true)}>
+                <ClipboardPlus className="h-4 w-4 mr-2" />
+                Avaliacao Fisio
+              </Button>
+              <Button variant="secondary" onClick={() => setOpenAvalTO(true)}>
+                <ClipboardPlus className="h-4 w-4 mr-2" />
+                Avaliacao TO
+              </Button>
+              <Button variant="outline" onClick={() => setOpenEvoFisio(true)}>
+                Evolucao Fisio
+              </Button>
+              <Button variant="outline" onClick={() => setOpenEvoTO(true)}>
+                Evolucao TO
+              </Button>
+            </div>
+          </div>
 
-      <div className="bg-white shadow overflow-hidden rounded-md">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-           <span className="text-sm text-gray-500">Mostrando ultimos registros</span>
-           <div />
+          <div className="bg-white shadow overflow-hidden rounded-md">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+               <span className="text-sm text-gray-500">Mostrando ultimos registros</span>
+               <div />
+            </div>
+            <ul className="divide-y divide-gray-200">
+              {sortedAtendimentos.map((atendimento) => (
+                <li key={atendimento.id} className="px-6 py-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-primary-600 truncate">
+                        {getPacienteName(atendimento.pacienteId)}
+                      </p>
+                      <p className="ml-1 flex-shrink-0 font-normal text-gray-500">
+                        com {getProfissionalName(atendimento.profissionalId)}
+                      </p>
+                    </div>
+                    <div className="ml-2 flex-shrink-0 flex">
+                      <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        atendimento.status === 'Realizado' ? 'bg-green-100 text-green-800' : 
+                        atendimento.status === 'Agendado' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {atendimento.status}
+                      </p>
+                      <button className="ml-2 text-gray-400 hover:text-blue-600" onClick={() => handleEdit(atendimento)} title="Editar atendimento">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button className="ml-2 text-gray-400 hover:text-red-600" onClick={() => handleDelete(atendimento.id)} title="Excluir atendimento">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-2 sm:flex sm:justify-between">
+                    <div className="sm:flex">
+                      <p className="flex items-center text-sm text-gray-500">
+                        {atendimento.tipo}
+                      </p>
+                    </div>
+                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                      <p>
+                        {formatDateTime(atendimento.dataHora)}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-        <ul className="divide-y divide-gray-200">
-          {sortedAtendimentos.map((atendimento) => (
-            <li key={atendimento.id} className="px-6 py-4 hover:bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-primary-600 truncate">
-                    {getPacienteName(atendimento.pacienteId)}
-                  </p>
-                  <p className="ml-1 flex-shrink-0 font-normal text-gray-500">
-                    com {getProfissionalName(atendimento.profissionalId)}
-                  </p>
-                </div>
-                <div className="ml-2 flex-shrink-0 flex">
-                  <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    atendimento.status === 'Realizado' ? 'bg-green-100 text-green-800' : 
-                    atendimento.status === 'Agendado' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {atendimento.status}
-                  </p>
-                  <button className="ml-2 text-gray-400 hover:text-blue-600" onClick={() => handleEdit(atendimento)} title="Editar atendimento">
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button className="ml-2 text-gray-400 hover:text-red-600" onClick={() => handleDelete(atendimento.id)} title="Excluir atendimento">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="mt-2 sm:flex sm:justify-between">
-                <div className="sm:flex">
-                  <p className="flex items-center text-sm text-gray-500">
-                    {atendimento.tipo}
-                  </p>
-                </div>
-                <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                  <p>
-                    {formatDateTime(atendimento.dataHora)}
-                  </p>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+
+        <div className="space-y-4">
+          <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-slate-900">Progresso de pacientes</h3>
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Filtrar paciente</label>
+              <select
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-primary-500 focus:border-primary-500"
+                value={pacienteFiltroProgresso}
+                onChange={(e) => setPacienteFiltroProgresso(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                {state.pacientes.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+              {progressoPacientes.length === 0 ? (
+                <p className="text-sm text-slate-500">Nenhum paciente com atendimentos.</p>
+              ) : (
+                progressoPacientes.map((p) => (
+                  <div key={p.id} className="p-3 rounded-md border border-slate-100 bg-slate-50">
+                    <div className="flex justify-between text-sm font-medium text-slate-800">
+                      <span>{p.nome}</span>
+                      <span>{p.progresso}%</span>
+                    </div>
+                    <div className="mt-2 h-2 bg-white rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-teal-500 to-sky-500 transition-all"
+                        style={{ width: `${p.progresso}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">{p.sessions} sessoes registradas</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <AtendimentoFormModal
